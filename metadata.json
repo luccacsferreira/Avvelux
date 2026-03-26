@@ -1,0 +1,9 @@
+{
+  "name": "Avvelux",
+  "description": "A comprehensive multi-feature application including social feeds, video streaming, e-commerce, and analytics.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
