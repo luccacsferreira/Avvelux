@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { apiClient as base44 } from '@/api/apiClient';
 import { Check, Crown, Zap, X, ArrowLeft } from 'lucide-react';
 import { createPageUrl } from '../utils';
 import { Link } from 'react-router-dom';

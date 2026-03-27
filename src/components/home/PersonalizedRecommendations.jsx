@@ -1,5 +1,5 @@
 import React from 'react';
-import { base44 } from '@/api/base44Client';
+import { apiClient as base44 } from '@/api/apiClient';
 import { useQuery } from '@tanstack/react-query';
 import { Sparkles, ChevronRight, History, Heart, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';

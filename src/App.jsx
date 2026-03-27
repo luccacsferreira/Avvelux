@@ -34,12 +34,8 @@ const AuthenticatedApp = () => {
         <Route path="/Register" element={<Register />} />
         <Route path="/ForgotPassword" element={<ForgotPassword />} />
         
-        {/* Publicly accessible routes, but actions within them might require login */}
-        <Route path="/" element={
-          <LayoutWrapper currentPageName={mainPageKey}>
-            <MainPage />
-          </LayoutWrapper>
-        } />
+        {/* Redirect root to Home */}
+        <Route path="/" element={<Navigate to="/Home" replace />} />
         
         {Object.entries(Pages).map(([path, Page]) => (
           <Route

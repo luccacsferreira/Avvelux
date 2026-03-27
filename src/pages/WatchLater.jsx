@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
+import { apiClient as base44 } from '@/api/apiClient';
 import { useQuery } from '@tanstack/react-query';
 import EmptyState from '../components/common/EmptyState';
 

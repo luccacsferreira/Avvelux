@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { base44 } from '@/api/base44Client';
+import { apiClient as base44 } from '@/api/apiClient';
 import { useQuery } from '@tanstack/react-query';
 import { Heart, MessageCircle, Share2, Bookmark, Play, ChevronUp, ChevronDown, X, Send } from 'lucide-react';
 import { createPageUrl } from '../utils';
