@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { Video, Clip, Post, User as UserEntity } from '@/api/entities';
+import { Core } from '@/api/integrations';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Search as SearchIcon, SlidersHorizontal, X, Sparkles, Play, Film, FileText, Clock, TrendingUp, User } from 'lucide-react';
@@ -66,22 +67,22 @@ export default function Search() {
 
   const { data: videos = [] } = useQuery({
     queryKey: ['search-videos'],
-    queryFn: () => base44.entities.Video.list('-created_date', 100),
+    queryFn: () => Video.list('-created_date', 100),
   });
 
   const { data: clips = [] } = useQuery({
     queryKey: ['search-clips'],
-    queryFn: () => base44.entities.Clip.list('-created_date', 100),
+    queryFn: () => Clip.list('-created_date', 100),
   });
 
   const { data: posts = [] } = useQuery({
     queryKey: ['search-posts'],
-    queryFn: () => base44.entities.Post.list('-created_date', 100),
+    queryFn: () => Post.list('-created_date', 100),
   });
 
   const { data: dbUsers = [] } = useQuery({
     queryKey: ['search-users'],
-    queryFn: () => base44.entities.User.list(),
+    queryFn: () => UserEntity.list(),
   });
 
   const allAccounts = dbUsers.length > 0 ? dbUsers : SAMPLE_ACCOUNTS;
@@ -91,7 +92,7 @@ export default function Search() {
     setIsSearching(true);
     setSearchQuery(searchText);
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await Core.InvokeLLM({
         prompt: `You are a content search assistant. The user is searching for: "${searchText}"
 Analyze this search query and return related keywords and content type:
 {

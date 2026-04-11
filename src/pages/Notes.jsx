@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { auth } from '@/api/sdk';
+import { Note } from '@/api/entities';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileText, Plus, Trash2, Edit2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ export default function Notes() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const userData = await base44.auth.me();
+        const userData = await auth.me();
         setUser(userData);
       } catch (e) {}
     };
@@ -33,12 +34,12 @@ export default function Notes() {
 
   const { data: notes = [] } = useQuery({
     queryKey: ['notes', user?.email],
-    queryFn: () => user ? base44.entities.Note.filter({ created_by: user.email }, '-created_date') : [],
+    queryFn: () => user ? Note.filter({ created_by: user.email }, '-created_date') : [],
     enabled: !!user,
   });
 
   const addNoteMutation = useMutation({
-    mutationFn: (data) => base44.entities.Note.create(data),
+    mutationFn: (data) => Note.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['notes', user?.email]);
       setNoteTitle('');
@@ -48,7 +49,7 @@ export default function Notes() {
   });
 
   const deleteNoteMutation = useMutation({
-    mutationFn: (id) => base44.entities.Note.delete(id),
+    mutationFn: (id) => Note.delete(id),
     onSuccess: () => queryClient.invalidateQueries(['notes', user?.email]),
   });
 

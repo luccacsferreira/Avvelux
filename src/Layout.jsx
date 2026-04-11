@@ -10,6 +10,7 @@ import {
   Users, GraduationCap
 } from 'lucide-react';
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -199,13 +200,13 @@ export default function Layout({ children, currentPageName }) {
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center text-white font-medium">
-                    {user?.displayName?.[0]?.toUpperCase() || 'U'}
+                    {user?.display_name?.[0]?.toUpperCase() || 'U'}
                   </div>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className={`w-64 ${isLightTheme ? 'bg-white border-gray-200' : 'bg-[#2a2a2a] border-gray-700'} ${textColor}`}>
                 <div className="p-3">
-                  <p className="font-medium">{user?.displayName || 'Guest'}</p>
+                  <p className="font-medium">{user?.display_name || 'Guest'}</p>
                   <p className={`text-sm ${textMuted}`}>{user?.email}</p>
                 </div>
                 <DropdownMenuSeparator className={borderColor} />
@@ -293,7 +294,7 @@ export default function Layout({ children, currentPageName }) {
           className={`flex flex-col items-center gap-0.5 ${currentPageName === 'Library' ? 'text-purple-400' : textMuted}`}
         >
           <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold">
-            {user?.displayName?.[0]?.toUpperCase() || 'U'}
+            {user?.display_name?.[0]?.toUpperCase() || 'U'}
           </div>
         </button>
       </nav>

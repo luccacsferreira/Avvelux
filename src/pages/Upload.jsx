@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiClient as base44 } from '@/api/apiClient';
-import { Upload as UploadIcon, Trash2, BarChart2, Image, FileText } from 'lucide-react';
+import { useAuth } from '@/lib/AuthContext';
+import { Post } from '@/api/entities';
+import { Upload as UploadIcon, Trash2, BarChart2, Image, FileText, Plus } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -65,9 +66,11 @@ const SUBCATEGORIES = {
   'Philosophy & History': ['Ancient Philosophy', 'Modern Philosophy', 'World History', 'Ethics & Morality'],
 };
 
+import { videoService } from '../services/videoService';
+
 export default function Upload() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('Video');
   const [isUploading, setIsUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -97,10 +100,6 @@ export default function Upload() {
     imageFile: null,
     content: '',
   });
-
-  useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
-  }, []);
 
   const handleFileChange = (e, type) => {
     const file = e.target.files[0];
@@ -140,23 +139,25 @@ export default function Upload() {
       let imageUrl = '';
 
       if (formData.thumbnailFile) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: formData.thumbnailFile });
-        thumbnailUrl = file_url;
+        thumbnailUrl = await videoService.uploadFile(formData.thumbnailFile, 'thumbnails');
       }
       if (formData.videoFile) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: formData.videoFile });
-        videoUrl = file_url;
+        videoUrl = await videoService.uploadFile(formData.videoFile, 'videos');
       }
       if (formData.imageFile) {
-        const { file_url } = await base44.integrations.Core.UploadFile({ file: formData.imageFile });
-        imageUrl = file_url;
+        imageUrl = await videoService.uploadFile(formData.imageFile, 'posts');
       }
 
-      const baseData = { creator_id: user.id, creator_name: user.full_name, privacy: formData.privacy };
+      const baseData = { 
+        creator_id: user.id, 
+        creator_name: user.display_name || user.username || user.email?.split('@')[0] || 'User', 
+        creator_avatar: user.avatar_url || '',
+        privacy: formData.privacy,
+        created_at: new Date().toISOString()
+      };
 
       if (activeTab === 'Video' || activeTab === 'Clips') {
-        const entity = activeTab === 'Video' ? 'Video' : 'Clip';
-        await base44.entities[entity].create({
+        const data = {
           ...baseData,
           title: formData.title,
           description: formData.description,
@@ -166,9 +167,14 @@ export default function Upload() {
           thumbnail_url: thumbnailUrl,
           views: 0,
           likes: 0,
-        });
+        };
+        if (activeTab === 'Video') {
+          await videoService.uploadVideo(data);
+        } else {
+          await videoService.uploadClip(data);
+        }
       } else if (activeTab === 'Posts') {
-        await base44.entities.Post.create({
+        await Post.create({
           ...baseData,
           title: formData.title,
           content: postType !== 'poll' ? formData.content : '',
@@ -183,6 +189,7 @@ export default function Upload() {
       setIsUploading(false);
       setShowSuccessDialog(true);
     } catch (error) {
+      console.error('Upload error:', error);
       toast.error('Failed to upload content');
       setIsUploading(false);
     }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { WatchHistory, LikedContent, Video, Clip } from '@/api/entities';
 import { useQuery } from '@tanstack/react-query';
 import { Sparkles, ChevronRight, History, Heart, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -11,27 +11,27 @@ export default function PersonalizedRecommendations({ userId, isLight }) {
   // Fetch user's watch history
   const { data: watchHistory = [] } = useQuery({
     queryKey: ['watch-history', userId],
-    queryFn: () => userId ? base44.entities.WatchHistory.filter({ user_id: userId }, '-created_date', 20) : [],
+    queryFn: () => userId ? WatchHistory.filter({ user_id: userId }, '-created_date', 20) : [],
     enabled: !!userId,
   });
 
   // Fetch user's liked content
   const { data: likedContent = [] } = useQuery({
     queryKey: ['liked-content', userId],
-    queryFn: () => userId ? base44.entities.LikedContent.filter({ user_id: userId }, '-created_date', 20) : [],
+    queryFn: () => userId ? LikedContent.filter({ user_id: userId }, '-created_date', 20) : [],
     enabled: !!userId,
   });
 
   // Fetch all videos
   const { data: allVideos = [] } = useQuery({
     queryKey: ['all-videos-rec'],
-    queryFn: () => base44.entities.Video.list('-views', 50),
+    queryFn: () => Video.list('-views', 50),
   });
 
   // Fetch all clips
   const { data: allClips = [] } = useQuery({
     queryKey: ['all-clips-rec'],
-    queryFn: () => base44.entities.Clip.list('-views', 30),
+    queryFn: () => Clip.list('-views', 30),
   });
 
   // Get watched/liked content IDs

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { useAuth } from '@/lib/AuthContext';
-import { apiClient as base44 } from '@/api/apiClient';
+import { Video, Clip, Post, Story, Follow } from '@/api/entities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import VideoCard from '../components/feed/VideoCard';
 import ClipCard from '../components/feed/ClipCard';
@@ -38,31 +38,31 @@ export default function Account() {
 
   const { data: followers = [] } = useQuery({
     queryKey: ['followers', user?.id],
-    queryFn: () => user ? base44.entities.Follow.filter({ following_id: user.id }) : [],
+    queryFn: () => user ? Follow.filter({ following_id: user.id }) : [],
     enabled: !!user,
   });
 
   const { data: following = [] } = useQuery({
     queryKey: ['following', user?.id],
-    queryFn: () => user ? base44.entities.Follow.filter({ follower_id: user.id }) : [],
+    queryFn: () => user ? Follow.filter({ follower_id: user.id }) : [],
     enabled: !!user,
   });
 
   const { data: videos = [] } = useQuery({
     queryKey: ['my-videos', user?.id],
-    queryFn: () => user ? base44.entities.Video.filter({ creator_id: user.id }, '-created_date') : [],
+    queryFn: () => user ? Video.filter({ creator_id: user.id }, '-created_date') : [],
     enabled: !!user,
   });
 
   const { data: clips = [] } = useQuery({
     queryKey: ['my-clips', user?.id],
-    queryFn: () => user ? base44.entities.Clip.filter({ creator_id: user.id }, '-created_date') : [],
+    queryFn: () => user ? Clip.filter({ creator_id: user.id }, '-created_date') : [],
     enabled: !!user,
   });
 
   const { data: posts = [] } = useQuery({
     queryKey: ['my-posts', user?.id],
-    queryFn: () => user ? base44.entities.Post.filter({ creator_id: user.id }, '-created_date') : [],
+    queryFn: () => user ? Post.filter({ creator_id: user.id }, '-created_date') : [],
     enabled: !!user,
   });
 
@@ -72,7 +72,7 @@ export default function Account() {
     queryKey: ['my-stories', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const userStories = await base44.entities.Story.filter({ user_id: user.id });
+      const userStories = await Story.filter({ user_id: user.id });
       const now = new Date();
       const activeStories = userStories.filter(s => new Date(s.expires_at) > now);
       setHasStory(activeStories.length > 0);
@@ -85,11 +85,11 @@ export default function Account() {
     const { item, type } = deleteDialog;
     try {
       const entityMap = {
-        video: 'Video',
-        clip: 'Clip',
-        post: 'Post',
+        video: Video,
+        clip: Clip,
+        post: Post,
       };
-      await base44.entities[entityMap[type]].delete(item.id);
+      await entityMap[type].delete(item.id);
       queryClient.invalidateQueries({ queryKey: [`my-${type}s`] });
       toast.success('Content deleted successfully');
     } catch (error) {
@@ -104,8 +104,8 @@ export default function Account() {
     { value: 'Posts', label: 'Posts', data: posts, type: 'post' },
   ];
 
-  const nickname = user?.displayName?.split(' ')[0] || 'User';
-  const username = user?.email?.split('@')[0] || 'user';
+  const nickname = user?.display_name || user?.username || 'User';
+  const username = user?.username || user?.email?.split('@')[0] || 'user';
 
   const ContentCard = ({ item, type, children }) => (
     <div className="relative group">
@@ -134,8 +134,8 @@ export default function Account() {
                 : 'bg-gradient-to-r from-purple-500 via-cyan-500 to-purple-500'
               : ''
           }`}>
-            {user?.photoURL ? (
-              <img src={user.photoURL} alt={nickname} className={`w-28 h-28 rounded-full object-cover border-4 ${isLight ? 'border-white' : 'border-[#1a1a1a]'}`} />
+            {user?.avatar_url ? (
+              <img src={user.avatar_url} alt={nickname} className={`w-28 h-28 rounded-full object-cover border-4 ${isLight ? 'border-white' : 'border-[#1a1a1a]'}`} />
             ) : (
               <div className={`w-28 h-28 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center text-white text-4xl font-medium border-4 ${isLight ? 'border-white' : 'border-[#1a1a1a]'}`}>
                 {nickname[0]?.toUpperCase()}

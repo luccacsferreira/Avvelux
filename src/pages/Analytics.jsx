@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { auth } from '@/api/sdk';
+import { Video, Clip, Post, Follow } from '@/api/entities';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
@@ -41,7 +42,7 @@ export default function Analytics() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const userData = await base44.auth.me();
+        const userData = await auth.me();
         setUser(userData);
       } catch (e) {}
     };
@@ -50,25 +51,25 @@ export default function Analytics() {
 
   const { data: videos = [] } = useQuery({
     queryKey: ['analytics-videos', user?.id],
-    queryFn: () => user ? base44.entities.Video.filter({ creator_id: user.id }, '-created_date') : [],
+    queryFn: () => user ? Video.filter({ creator_id: user.id }, '-created_date') : [],
     enabled: !!user,
   });
 
   const { data: clips = [] } = useQuery({
     queryKey: ['analytics-clips', user?.id],
-    queryFn: () => user ? base44.entities.Clip.filter({ creator_id: user.id }, '-created_date') : [],
+    queryFn: () => user ? Clip.filter({ creator_id: user.id }, '-created_date') : [],
     enabled: !!user,
   });
 
   const { data: posts = [] } = useQuery({
     queryKey: ['analytics-posts', user?.id],
-    queryFn: () => user ? base44.entities.Post.filter({ creator_id: user.id }, '-created_date') : [],
+    queryFn: () => user ? Post.filter({ creator_id: user.id }, '-created_date') : [],
     enabled: !!user,
   });
 
   const { data: followers = [] } = useQuery({
     queryKey: ['analytics-followers', user?.id],
-    queryFn: () => user ? base44.entities.Follow.filter({ following_id: user.id }) : [],
+    queryFn: () => user ? Follow.filter({ following_id: user.id }) : [],
     enabled: !!user,
   });
 

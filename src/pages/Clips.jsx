@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
-import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/lib/AuthContext';
+import { WatchHistory, WatchLater } from '@/api/entities';
 import { Heart, MessageCircle, Share2, Bookmark, Play, ChevronUp, ChevronDown, X, Send } from 'lucide-react';
 import { createPageUrl } from '../utils';
 import { Link } from 'react-router-dom';
+import { videoService } from '../services/videoService';
+import ClipAd from '../components/video/ClipAd';
+import { toast } from 'sonner';
 
 const sampleClips = [
   { id: '1', title: 'Quick Morning Stretch Routine', description: 'Start your day right with this energizing stretch sequence.', thumbnail_url: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600', duration: '0:45', views: 120000, likes: 8500, creator_name: 'FitLife', creator_id: 'u1', creator_avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop' },
@@ -252,18 +255,44 @@ function ClipItem({ clip, isActive, onLike, liked, saved, onSave, onShare, muted
 }
 
 export default function Clips() {
+  const { user } = useAuth();
   const [activeIndex, setActiveIndex] = useState(0);
   const [likedClips, setLikedClips] = useState({});
   const [savedClips, setSavedClips] = useState({});
   const [muted, setMuted] = useState(false);
   const [isLandscape, setIsLandscape] = useState(false);
   const containerRef = useRef(null);
+  const [clips, setClips] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { data: clips = sampleClips } = useQuery({
-    queryKey: ['clips'],
-    queryFn: () => base44.entities.Clip.list('-created_date', 50),
-    initialData: sampleClips,
-  });
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const [fetchedClips, fetchedAds] = await Promise.all([
+          videoService.getClips(),
+          videoService.getAds()
+        ]);
+        
+        const combined = [];
+        fetchedClips.forEach((clip, index) => {
+          combined.push({ ...clip, type: 'clip' });
+          if ((index + 1) % 10 === 0 && fetchedAds.length > 0) {
+            const randomAd = fetchedAds[Math.floor(Math.random() * fetchedAds.length)];
+            combined.push({ ...randomAd, type: 'ad', id: `ad-${index}` });
+          }
+        });
+        
+        setClips(combined);
+      } catch (error) {
+        console.error('Error fetching clips/ads:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const check = () => setIsLandscape(window.innerWidth > window.innerHeight && window.innerWidth >= 640);
@@ -281,7 +310,7 @@ export default function Clips() {
 
   useEffect(() => {
     const el = containerRef.current;
-    if (!el) return;
+    if (!el || clips.length === 0) return;
     let startY = 0;
     const onTouchStart = (e) => { startY = e.touches[0].clientY; };
     const onTouchEnd = (e) => {
@@ -304,11 +333,11 @@ export default function Clips() {
   }, [clips.length]);
 
   useEffect(() => {
-    if (!clips[activeIndex]) return;
+    if (!clips[activeIndex] || clips[activeIndex].type === 'ad') return;
     const saveHistory = async () => {
       try {
-        const user = await base44.auth.me();
-        await base44.entities.WatchHistory.create({
+        if (!user) return;
+        await WatchHistory.create({
           user_id: user.id,
           content_type: 'clip',
           content_id: clips[activeIndex].id,
@@ -317,23 +346,23 @@ export default function Clips() {
       } catch (e) {}
     };
     saveHistory();
-  }, [activeIndex, clips]);
+  }, [activeIndex, clips, user]);
 
   const handleShare = (clip) => {
     const url = `${window.location.origin}${createPageUrl(`ClipPlayer?id=${clip.id}`)}`;
     navigator.clipboard.writeText(url);
-    alert('Link copied to clipboard!');
+    toast.success('Link copied to clipboard!');
   };
 
   const handleSave = async (clip) => {
     try {
-      const user = await base44.auth.me();
-      const existing = await base44.entities.WatchLater.filter({ user_id: user.id, content_id: clip.id, content_type: 'clip' });
+      if (!user) { toast.error('Please log in to save clips'); return; }
+      const existing = await WatchLater.filter({ user_id: user.id, content_id: clip.id, content_type: 'clip' });
       if (existing.length > 0) {
-        await base44.entities.WatchLater.delete(existing[0].id);
+        await WatchLater.delete(existing[0].id);
         setSavedClips(prev => ({ ...prev, [clip.id]: false }));
       } else {
-        await base44.entities.WatchLater.create({ user_id: user.id, content_id: clip.id, content_type: 'clip' });
+        await WatchLater.create({ user_id: user.id, content_id: clip.id, content_type: 'clip' });
         setSavedClips(prev => ({ ...prev, [clip.id]: true }));
       }
     } catch (e) {}
@@ -355,23 +384,27 @@ export default function Clips() {
             {/* Clip area — full height, centered, natural 9:16 */}
             <div className="flex-1 flex items-center justify-center bg-black relative overflow-hidden">
               <div className="relative h-full w-full max-w-sm md:max-w-xs overflow-hidden" style={{ aspectRatio: '9/16' }}>
-                {clips.map((clip, idx) => (
+                {clips.map((item, idx) => (
                   <div
-                    key={clip.id}
+                    key={item.id}
                     className="absolute inset-0 transition-transform duration-500"
                     style={{ transform: `translateY(${(idx - activeIndex) * 100}%)` }}
                   >
-                    <ClipItem
-                      clip={clip}
-                      isActive={idx === activeIndex}
-                      liked={!!likedClips[clip.id]}
-                      saved={!!savedClips[clip.id]}
-                      onLike={() => setLikedClips(prev => ({ ...prev, [clip.id]: !prev[clip.id] }))}
-                      onSave={() => handleSave(clip)}
-                      onShare={() => handleShare(clip)}
-                      muted={muted}
-                      isLandscape={false}
-                    />
+                    {item.type === 'ad' ? (
+                      <ClipAd ad={item} onComplete={goNext} />
+                    ) : (
+                      <ClipItem
+                        clip={item}
+                        isActive={idx === activeIndex}
+                        liked={!!likedClips[item.id]}
+                        saved={!!savedClips[item.id]}
+                        onLike={() => setLikedClips(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                        onSave={() => handleSave(item)}
+                        onShare={() => handleShare(item)}
+                        muted={muted}
+                        isLandscape={false}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
@@ -391,23 +424,27 @@ export default function Clips() {
         ) : (
           /* Landscape: full screen with clip + right panel layout */
           <div className="w-full h-full relative overflow-hidden">
-            {clips.map((clip, idx) => (
+            {clips.map((item, idx) => (
               <div
-                key={clip.id}
+                key={item.id}
                 className="absolute inset-0 transition-transform duration-500"
                 style={{ transform: `translateY(${(idx - activeIndex) * 100}%)` }}
               >
-                <ClipItem
-                  clip={clip}
-                  isActive={idx === activeIndex}
-                  liked={!!likedClips[clip.id]}
-                  saved={!!savedClips[clip.id]}
-                  onLike={() => setLikedClips(prev => ({ ...prev, [clip.id]: !prev[clip.id] }))}
-                  onSave={() => handleSave(clip)}
-                  onShare={() => handleShare(clip)}
-                  muted={muted}
-                  isLandscape={true}
-                />
+                {item.type === 'ad' ? (
+                  <ClipAd ad={item} onComplete={goNext} />
+                ) : (
+                  <ClipItem
+                    clip={item}
+                    isActive={idx === activeIndex}
+                    liked={!!likedClips[item.id]}
+                    saved={!!savedClips[item.id]}
+                    onLike={() => setLikedClips(prev => ({ ...prev, [item.id]: !prev[item.id] }))}
+                    onSave={() => handleSave(item)}
+                    onShare={() => handleShare(item)}
+                    muted={muted}
+                    isLandscape={true}
+                  />
+                )}
               </div>
             ))}
           </div>

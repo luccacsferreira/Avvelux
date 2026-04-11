@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { auth } from '@/api/sdk';
+import { AIChat, ChatMessage } from '@/api/entities';
+import { Core } from '@/api/integrations';
 import { Search, Lightbulb, FileText, Video, Send, PenLine, Sparkles, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
@@ -46,7 +48,7 @@ export default function AIHelp() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const userData = await base44.auth.me();
+        const userData = await auth.me();
         setUser(userData);
         loadChats(userData.id);
       } catch (e) {}
@@ -55,7 +57,7 @@ export default function AIHelp() {
   }, []);
 
   const loadChats = async (userId) => {
-    const userChats = await base44.entities.AIChat.filter({ user_id: userId }, '-created_date');
+    const userChats = await AIChat.filter({ user_id: userId }, '-created_date');
     setChats(userChats);
   };
 
@@ -66,7 +68,7 @@ export default function AIHelp() {
 
   const doDeleteChat = async () => {
     const { chatId } = deleteChatDialog;
-    await base44.entities.AIChat.delete(chatId);
+    await AIChat.delete(chatId);
     setChats(prev => prev.filter(c => c.id !== chatId));
     if (currentChat?.id === chatId) {
       setCurrentChat(null);
@@ -131,7 +133,7 @@ export default function AIHelp() {
 
   const createNewChat = async () => {
     if (!user) return;
-    const chat = await base44.entities.AIChat.create({ user_id: user.id, title: 'New Chat' });
+    const chat = await AIChat.create({ user_id: user.id, title: 'New Chat' });
     setChats([chat, ...chats]);
     setCurrentChat(chat);
     setMessages([]);
@@ -139,7 +141,7 @@ export default function AIHelp() {
 
   const loadChatMessages = async (chat) => {
     setCurrentChat(chat);
-    const chatMessages = await base44.entities.ChatMessage.filter({ chat_id: chat.id }, 'created_date');
+    const chatMessages = await ChatMessage.filter({ chat_id: chat.id }, 'created_date');
     setMessages(chatMessages);
   };
 
@@ -151,7 +153,7 @@ export default function AIHelp() {
     
     // If no current chat, create one immediately with AI-generated title later
     if (!chatToUse && user) {
-      chatToUse = await base44.entities.AIChat.create({ user_id: user.id, title: userInput.slice(0, 30) });
+      chatToUse = await AIChat.create({ user_id: user.id, title: userInput.slice(0, 30) });
       setChats([chatToUse, ...chats]);
       setCurrentChat(chatToUse);
     }
@@ -162,10 +164,10 @@ export default function AIHelp() {
     setIsLoading(true);
     setStreamingMsgId(null);
 
-    await base44.entities.ChatMessage.create(userMessage);
+    await ChatMessage.create(userMessage);
 
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await Core.InvokeLLM({
         prompt: `You are a helpful AI assistant for Avvelux, a content and personal development platform. Answer clearly and directly.
 
 RULES:
@@ -189,18 +191,18 @@ User question: ${userInput}`,
       const assistantMessage = { role: 'assistant', content: response, chat_id: chatToUse.id };
       const newMessages = [...messages, { role: 'user', content: userInput }, assistantMessage];
       setMessages(newMessages);
-      await base44.entities.ChatMessage.create(assistantMessage);
+      await ChatMessage.create(assistantMessage);
 
       // Stream the assistant response
       streamResponse(response, newMessages.length - 1);
 
       // Generate a better title for the chat based on the conversation
       try {
-        const titleResponse = await base44.integrations.Core.InvokeLLM({
+        const titleResponse = await Core.InvokeLLM({
           prompt: `Generate a very short title (max 25 characters) for this conversation. User asked: "${userInput}". Just return the title, nothing else.`,
         });
         const newTitle = titleResponse.slice(0, 25);
-        await base44.entities.AIChat.update(chatToUse.id, { title: newTitle });
+        await AIChat.update(chatToUse.id, { title: newTitle });
         streamChatTitle(chatToUse.id, newTitle);
       } catch (e) {}
     } catch (error) {

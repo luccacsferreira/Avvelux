@@ -23,7 +23,33 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   : <>{children}</>;
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, user } = useAuth();
+  const { isLoadingAuth, user, authError } = useAuth();
+
+  if (isLoadingAuth) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-400 font-medium animate-pulse">Initializing Avvelux...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (authError && (authError.type === 'connection_error' || authError.type === 'schema_error')) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 p-4 text-center">
+        <div className="max-w-md p-8 bg-white rounded-xl shadow-lg border border-red-100">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Configuration Error</h1>
+          <p className="text-slate-600 mb-6">{authError.message}</p>
+          <div className="text-sm text-slate-400 bg-slate-50 p-4 rounded-lg text-left overflow-auto max-h-40">
+            <p className="font-mono">Error Type: {authError.type}</p>
+            <p className="font-mono mt-2">Please ensure your Supabase project is correctly configured and the schema SQL has been executed.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Render the app
   return (

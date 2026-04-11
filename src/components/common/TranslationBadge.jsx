@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { Core } from '@/api/integrations';
 
 const LANG_LABELS = {
   en: 'EN', pt: 'PT', nl: 'NL', fr: 'FR', es: 'ES', 
@@ -41,7 +41,7 @@ export default function TranslationBadge({
     const translate = async () => {
       setIsTranslating(true);
       try {
-        const result = await base44.integrations.Core.InvokeLLM({
+        const result = await Core.InvokeLLM({
           prompt: `Translate this ${language} text to ${userLang}. Return ONLY the translation, nothing else:\n\n${text}`,
         });
         translationCache[cacheKey] = result;

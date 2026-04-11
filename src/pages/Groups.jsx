@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { auth } from '@/api/sdk';
+import { Group } from '@/api/entities';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Users, Plus, Search, Lock, Globe, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -35,22 +36,22 @@ export default function Groups() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ name: '', description: '', category: 'General', is_public: true });
 
-  useEffect(() => { base44.auth.me().then(setUser).catch(() => {}); }, []);
+  useEffect(() => { auth.me().then(setUser).catch(() => {}); }, []);
 
   const { data: groups = [] } = useQuery({
     queryKey: ['groups'],
-    queryFn: () => base44.entities.Group.list('-created_date', 100),
+    queryFn: () => Group.list('-created_date', 100),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Group.create(data),
+    mutationFn: (data) => Group.create(data),
     onSuccess: () => { qc.invalidateQueries(['groups']); setShowCreate(false); setForm({ name: '', description: '', category: 'General', is_public: true }); },
   });
 
   const joinMutation = useMutation({
     mutationFn: ({ group, userId }) => {
       const members = [...(group.member_ids || []), userId];
-      return base44.entities.Group.update(group.id, { member_ids: members, member_count: members.length });
+      return Group.update(group.id, { member_ids: members, member_count: members.length });
     },
     onSuccess: () => qc.invalidateQueries(['groups']),
   });
@@ -58,7 +59,7 @@ export default function Groups() {
   const leaveMutation = useMutation({
     mutationFn: ({ group, userId }) => {
       const members = (group.member_ids || []).filter(id => id !== userId);
-      return base44.entities.Group.update(group.id, { member_ids: members, member_count: members.length });
+      return Group.update(group.id, { member_ids: members, member_count: members.length });
     },
     onSuccess: () => qc.invalidateQueries(['groups']),
   });

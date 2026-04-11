@@ -1,5 +1,5 @@
 import React from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { Video } from '@/api/entities';
 import { useQuery } from '@tanstack/react-query';
 import VideoCard from '../components/feed/VideoCard';
 import { TrendingUp } from 'lucide-react';
@@ -16,7 +16,7 @@ const sampleVideos = [
 export default function Trending() {
   const { data: videos = sampleVideos } = useQuery({
     queryKey: ['trending-videos'],
-    queryFn: () => base44.entities.Video.list('-views', 20),
+    queryFn: () => Video.list('-views', 20),
     initialData: sampleVideos,
   });
 

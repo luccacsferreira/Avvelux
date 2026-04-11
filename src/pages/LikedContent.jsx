@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { auth } from '@/api/sdk';
+import { LikedContent as LikedContentEntity } from '@/api/entities';
 import { useQuery } from '@tanstack/react-query';
 import EmptyState from '../components/common/EmptyState';
 
@@ -9,7 +10,7 @@ export default function LikedContent() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const userData = await base44.auth.me();
+        const userData = await auth.me();
         setUser(userData);
       } catch (e) {}
     };
@@ -18,7 +19,7 @@ export default function LikedContent() {
 
   const { data: likedContent = [] } = useQuery({
     queryKey: ['liked-content', user?.email],
-    queryFn: () => user ? base44.entities.LikedContent.filter({ created_by: user.email }) : [],
+    queryFn: () => user ? LikedContentEntity.filter({ created_by: user.email }) : [],
     enabled: !!user,
   });
 

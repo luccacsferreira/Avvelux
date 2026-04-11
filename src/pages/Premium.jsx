@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { auth } from '@/api/sdk';
 import { Check, Crown, Zap, X, ArrowLeft } from 'lucide-react';
 import { createPageUrl } from '../utils';
 import { Link } from 'react-router-dom';
@@ -85,7 +85,7 @@ export default function Premium() {
   const isLight = theme === 'light';
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
+    auth.me().then(setUser).catch(() => {});
   }, []);
 
   const deadline = getPromoDeadline(user);

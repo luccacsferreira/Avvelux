@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { auth } from '@/api/sdk';
+import { Group, ForumPost, Comment } from '@/api/entities';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageSquare, Heart, Plus, ArrowLeft, Pin } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -37,38 +38,38 @@ export default function Forum() {
   const [form, setForm] = useState({ title: '', content: '' });
   const [replyText, setReplyText] = useState('');
 
-  useEffect(() => { base44.auth.me().then(setUser).catch(() => {}); }, []);
+  useEffect(() => { auth.me().then(setUser).catch(() => {}); }, []);
   useEffect(() => {
-    if (groupId) base44.entities.Group.filter({ id: groupId }).then(r => r[0] && setGroup(r[0])).catch(() => {});
+    if (groupId) Group.filter({ id: groupId }).then(r => r[0] && setGroup(r[0])).catch(() => {});
   }, [groupId]);
 
   const { data: posts = [] } = useQuery({
     queryKey: ['forum-posts', groupId],
-    queryFn: () => base44.entities.ForumPost.filter({ group_id: groupId }, '-created_date', 100),
+    queryFn: () => ForumPost.filter({ group_id: groupId }, '-created_date', 100),
     enabled: !!groupId,
   });
 
   const { data: replies = [] } = useQuery({
     queryKey: ['forum-replies', selectedPost?.id],
-    queryFn: () => base44.entities.Comment.filter({ content_type: 'post', content_id: selectedPost.id }, 'created_date'),
+    queryFn: () => Comment.filter({ content_type: 'post', content_id: selectedPost.id }, 'created_date'),
     enabled: !!selectedPost,
   });
 
   const createPost = useMutation({
-    mutationFn: (data) => base44.entities.ForumPost.create(data),
+    mutationFn: (data) => ForumPost.create(data),
     onSuccess: () => { qc.invalidateQueries(['forum-posts', groupId]); setShowCreate(false); setForm({ title: '', content: '' }); },
   });
 
   const likePost = useMutation({
-    mutationFn: (post) => base44.entities.ForumPost.update(post.id, { likes: (post.likes || 0) + 1 }),
+    mutationFn: (post) => ForumPost.update(post.id, { likes: (post.likes || 0) + 1 }),
     onSuccess: () => qc.invalidateQueries(['forum-posts', groupId]),
   });
 
   const addReply = useMutation({
-    mutationFn: (data) => base44.entities.Comment.create(data),
+    mutationFn: (data) => Comment.create(data),
     onSuccess: () => {
       qc.invalidateQueries(['forum-replies', selectedPost?.id]);
-      base44.entities.ForumPost.update(selectedPost.id, { reply_count: (selectedPost.reply_count || 0) + 1 });
+      ForumPost.update(selectedPost.id, { reply_count: (selectedPost.reply_count || 0) + 1 });
       setReplyText('');
     },
   });

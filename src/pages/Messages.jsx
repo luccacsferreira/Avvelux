@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { auth } from '@/api/sdk';
+import { DirectMessage, User } from '@/api/entities';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Send, Search, MessageCircle, ArrowLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -40,12 +41,12 @@ export default function Messages() {
   const [searching, setSearching] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
 
-  useEffect(() => { base44.auth.me().then(setUser).catch(() => {}); }, []);
+  useEffect(() => { auth.me().then(setUser).catch(() => {}); }, []);
 
   // All DMs for this user (sent or received)
   const { data: allDMs = [] } = useQuery({
     queryKey: ['dms', user?.id],
-    queryFn: () => base44.entities.DirectMessage.list('-created_date', 200),
+    queryFn: () => DirectMessage.list('-created_date', 200),
     enabled: !!user,
     refetchInterval: 5000,
   });
@@ -75,14 +76,14 @@ export default function Messages() {
   }, [convMessages.length, activeConvId]);
 
   const sendMutation = useMutation({
-    mutationFn: (data) => base44.entities.DirectMessage.create(data),
+    mutationFn: (data) => DirectMessage.create(data),
     onSuccess: () => { qc.invalidateQueries(['dms', user?.id]); setMessageText(''); },
   });
 
   const handleSearchUsers = async (q) => {
     if (!q.trim()) { setSearchResults([]); return; }
     setSearching(true);
-    const users = await base44.entities.User.list();
+    const users = await User.list();
     setSearchResults(users.filter(u => u.id !== user?.id && (u.full_name?.toLowerCase().includes(q.toLowerCase()) || u.email?.toLowerCase().includes(q.toLowerCase()))));
     setSearching(false);
   };

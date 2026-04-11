@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { Video } from '@/api/entities';
 import { useQuery } from '@tanstack/react-query';
 import VideoCard from '../components/feed/VideoCard';
 import CategoryTabs from '../components/feed/CategoryTabs';
@@ -18,7 +18,7 @@ export default function Explore() {
 
   const { data: videos = sampleVideos } = useQuery({
     queryKey: ['explore-videos'],
-    queryFn: () => base44.entities.Video.list('-views', 20),
+    queryFn: () => Video.list('-views', 20),
     initialData: sampleVideos,
   });
 

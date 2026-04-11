@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { auth } from '@/api/sdk';
+import { Post, Comment } from '@/api/entities';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Heart, MessageCircle, Share2, Bookmark, Send } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -28,11 +29,11 @@ export default function PostPlayer() {
   useEffect(() => {
     const load = async () => {
       try {
-        const userData = await base44.auth.me();
+        const userData = await auth.me();
         setUser(userData);
       } catch (e) {}
       if (postId) {
-        const posts = await base44.entities.Post.filter({ id: postId });
+        const posts = await Post.filter({ id: postId });
         if (posts.length > 0) setPost(posts[0]);
       }
     };
@@ -41,12 +42,12 @@ export default function PostPlayer() {
 
   const { data: comments = [] } = useQuery({
     queryKey: ['post-comments', postId],
-    queryFn: () => postId ? base44.entities.Comment.filter({ content_type: 'post', content_id: postId }, 'created_date') : [],
+    queryFn: () => postId ? Comment.filter({ content_type: 'post', content_id: postId }, '-created_at') : [],
     enabled: !!postId,
   });
 
   const addCommentMutation = useMutation({
-    mutationFn: (data) => base44.entities.Comment.create(data),
+    mutationFn: (data) => Comment.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['post-comments', postId] });
       setNewComment('');
@@ -59,7 +60,7 @@ export default function PostPlayer() {
       content_type: 'post',
       content_id: postId,
       user_id: user.id,
-      user_name: user.full_name || 'User',
+      user_name: user.display_name || user.username || user.email.split('@')[0],
       text: newComment,
     });
   };
@@ -160,7 +161,7 @@ export default function PostPlayer() {
           {user && (
             <div className="flex gap-3 mb-5">
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex-shrink-0 flex items-center justify-center text-white text-sm font-medium">
-                {user.full_name?.[0]?.toUpperCase() || 'U'}
+                {user.display_name?.[0]?.toUpperCase() || 'U'}
               </div>
               <div className="flex-1 flex gap-2">
                 <Input

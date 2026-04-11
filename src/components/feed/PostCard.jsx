@@ -35,7 +35,7 @@ export default function PostCard({ post }) {
           >
             {post.creator_name || 'Unknown'}
           </Link>
-          <p className="text-gray-500 text-xs">7 days ago</p>
+          <p className="text-gray-500 text-xs">{post.created_at ? new Date(post.created_at).toLocaleDateString() : 'Just now'}</p>
         </div>
       </div>
 

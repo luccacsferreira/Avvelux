@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { auth } from '@/api/sdk';
+import { User, Video, Clip, Post, Follow } from '@/api/entities';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import VideoCard from '../components/feed/VideoCard';
 import ClipCard from '../components/feed/ClipCard';
@@ -29,13 +30,13 @@ export default function Profile() {
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const me = await base44.auth.me();
+        const me = await auth.me();
         setCurrentUser(me);
       } catch (e) {}
 
       if (profileId) {
         try {
-          const users = await base44.entities.User.list();
+          const users = await User.list();
           const foundUser = users.find(u => u.id === profileId);
           if (foundUser) {
             setProfileUser(foundUser);
@@ -54,31 +55,31 @@ export default function Profile() {
 
   const { data: followers = [] } = useQuery({
     queryKey: ['profile-followers', profileId],
-    queryFn: () => profileId ? base44.entities.Follow.filter({ following_id: profileId }) : [],
+    queryFn: () => profileId ? Follow.filter({ following_id: profileId }) : [],
     enabled: !!profileId,
   });
 
   const { data: following = [] } = useQuery({
     queryKey: ['profile-following', profileId],
-    queryFn: () => profileId ? base44.entities.Follow.filter({ follower_id: profileId }) : [],
+    queryFn: () => profileId ? Follow.filter({ follower_id: profileId }) : [],
     enabled: !!profileId,
   });
 
   const { data: videos = [] } = useQuery({
     queryKey: ['profile-videos', profileId],
-    queryFn: () => profileId ? base44.entities.Video.filter({ creator_id: profileId, privacy: 'public' }, '-created_date') : [],
+    queryFn: () => profileId ? Video.filter({ creator_id: profileId, privacy: 'public' }, '-created_at') : [],
     enabled: !!profileId,
   });
 
   const { data: clips = [] } = useQuery({
     queryKey: ['profile-clips', profileId],
-    queryFn: () => profileId ? base44.entities.Clip.filter({ creator_id: profileId, privacy: 'public' }, '-created_date') : [],
+    queryFn: () => profileId ? Clip.filter({ creator_id: profileId, privacy: 'public' }, '-created_at') : [],
     enabled: !!profileId,
   });
 
   const { data: posts = [] } = useQuery({
     queryKey: ['profile-posts', profileId],
-    queryFn: () => profileId ? base44.entities.Post.filter({ creator_id: profileId, privacy: 'public' }, '-created_date') : [],
+    queryFn: () => profileId ? Post.filter({ creator_id: profileId, privacy: 'public' }, '-created_at') : [],
     enabled: !!profileId,
   });
 
@@ -89,10 +90,10 @@ export default function Profile() {
       if (isFollowing) {
         const existingFollow = followers.find(f => f.follower_id === currentUser.id);
         if (existingFollow) {
-          await base44.entities.Follow.delete(existingFollow.id);
+          await Follow.delete(existingFollow.id);
         }
       } else {
-        await base44.entities.Follow.create({
+        await Follow.create({
           follower_id: currentUser.id,
           following_id: profileId,
         });
@@ -110,8 +111,8 @@ export default function Profile() {
     { value: 'Posts', label: 'Posts', data: posts, type: 'post' },
   ];
 
-  const nickname = profileUser?.full_name?.split(' ')[0] || 'User';
-  const username = profileUser?.email?.split('@')[0] || 'user';
+  const nickname = profileUser?.display_name?.split(' ')[0] || 'User';
+  const username = profileUser?.username || profileUser?.email?.split('@')[0] || 'user';
 
   if (!profileUser) {
     return (
@@ -134,7 +135,7 @@ export default function Profile() {
 
         {/* Profile Info */}
         <div className="flex-1">
-          <h1 className={`text-2xl font-bold mb-1 ${isLight ? 'text-black' : 'text-white'}`}>{profileUser.full_name || nickname}</h1>
+          <h1 className={`text-2xl font-bold mb-1 ${isLight ? 'text-black' : 'text-white'}`}>{profileUser.display_name || nickname}</h1>
           <p className={`mb-4 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>@{username} • {followers.length} followers • {following.length} following</p>
           
           {/* Follow Button - only show if not viewing own profile */}

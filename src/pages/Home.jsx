@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
-import { useQuery } from '@tanstack/react-query';
+import { videoService } from '../services/videoService';
+import { supabase } from '@/lib/supabase';
 import VideoCard from '../components/feed/VideoCard';
 import ClipCard from '../components/feed/ClipCard';
 import PostCard from '../components/feed/PostCard';
@@ -90,24 +90,40 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState('All');
   const isLight = useTheme();
   const { user } = useAuth();
+  const [videos, setVideos] = useState([]);
+  const [clips, setClips] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { data: videos = sampleVideos } = useQuery({
-    queryKey: ['videos'],
-    queryFn: () => base44.entities.Video.list('-created_date', 100),
-    initialData: sampleVideos,
-  });
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const [v, c] = await Promise.all([
+          videoService.getVideos(activeCategory),
+          videoService.getClips(20)
+        ]);
+        
+        // Fetch posts from Supabase
+        const { data: p, error: pError } = await supabase
+          .from('posts')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (pError) throw pError;
 
-  const { data: clips = sampleClips } = useQuery({
-    queryKey: ['clips'],
-    queryFn: () => base44.entities.Clip.list('-created_date', 100),
-    initialData: sampleClips,
-  });
-
-  const { data: posts = samplePosts } = useQuery({
-    queryKey: ['posts'],
-    queryFn: () => base44.entities.Post.list('-created_date', 30),
-    initialData: samplePosts,
-  });
+        setVideos(v.length > 0 ? v : sampleVideos);
+        setClips(c.length > 0 ? c : sampleClips);
+        setPosts(p.length > 0 ? p : samplePosts);
+      } catch (error) {
+        console.error('Error fetching home data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [activeCategory]);
 
   const text = isLight ? 'text-black' : 'text-white';
 
@@ -152,9 +168,9 @@ export default function Home() {
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${
                 activeCategory === cat
-                  ? 'bg-gradient-to-r from-purple-600 to-cyan-500 text-white shadow-md' 
+                  ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-lg scale-105' 
                   : isLight 
                     ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
                     : 'bg-[#2a2a2a] text-gray-400 hover:bg-[#333]'

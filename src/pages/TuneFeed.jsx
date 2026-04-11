@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { Video } from '@/api/entities';
+import { Core } from '@/api/integrations';
 import { useQuery } from '@tanstack/react-query';
 import { Sparkles, Send, History, ChevronDown } from 'lucide-react';
 import { Input } from "@/components/ui/input";
@@ -35,7 +36,7 @@ export default function TuneFeed() {
 
   const { data: allVideos = [] } = useQuery({
     queryKey: ['tune-feed-videos'],
-    queryFn: () => base44.entities.Video.list('-views', 50),
+    queryFn: () => Video.list('-views', 50),
   });
 
   // Algorithm: 3 out of 4 videos match preferences, 1 is randomized discovery
@@ -66,7 +67,7 @@ export default function TuneFeed() {
     setIsProcessing(true);
 
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
+      const response = await Core.InvokeLLM({
         prompt: `The user wants to tune their content feed. They said: "${message}"
 
 Current preferences: ${feedPreferences ? JSON.stringify(feedPreferences.keywords) : 'none'}

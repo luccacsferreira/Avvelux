@@ -66,7 +66,7 @@ export default function VideoCard({ video, size = 'normal' }) {
             <p className={`text-sm mt-1 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>{video.creator_name || 'Unknown'}</p>
           )}
           <p className="text-gray-500 text-xs">
-            {(() => { const v = video.views || 0; return v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(1)}K` : String(v); })()} views • {video.created_date ? '7 days ago' : 'Just now'}
+            {(() => { const v = video.views || 0; return v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(1)}K` : String(v); })()} views • {video.created_at ? new Date(video.created_at).toLocaleDateString() : 'Just now'}
           </p>
         </div>
       </div>

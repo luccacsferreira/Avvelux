@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { Video, Comment, Note } from '@/api/entities';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { useAuth } from '@/lib/AuthContext';
 import { 
-  Heart, Share2, Bookmark, Play, 
-  Volume2, Maximize, MoreVertical,
+  Heart, Share2, Bookmark, Play, Pause, Settings,
+  Volume2, Maximize,
   Send, FileText, Lightbulb
 } from 'lucide-react';
+import { GoogleGenAI } from "@google/genai";
 
 function formatCount(n) {
   if (!n) return '0';
@@ -36,6 +37,9 @@ const sampleRelatedVideos = [
   { id: '3', title: 'How to Overcome Fear and Take Action', thumbnail_url: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=600', duration: '18:33', views: 4200000, creator_name: 'Success Mindset' },
 ];
 
+import { videoService } from '../services/videoService';
+import VideoAd from '../components/video/VideoAd';
+
 export default function VideoPlayer() {
   const { user, requireAuth } = useAuth();
   const [liked, setLiked] = useState(false);
@@ -57,63 +61,115 @@ export default function VideoPlayer() {
   const dragStartWidth = useRef(320);
   const MIN_SIDEBAR = 260;
   const MAX_SIDEBAR = 400;
-  
+
+  // Ad logic
+  const [showAd, setShowAd] = useState(false);
+  const [currentAd, setCurrentAd] = useState(null);
+  const [lastAdTime, setLastAdTime] = useState(0);
+  const [ads, setAds] = useState([]);
+  const videoRef = useRef(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playing, setPlaying] = useState(false);
+
   useEffect(() => {
     setTheme(localStorage.getItem('avvelux-theme') || 'system');
+    videoService.getAds().then(setAds);
   }, []);
-  
+
   const isLight = theme === 'light';
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const videoId = urlParams.get('id') || '1';
 
+  const { data: videoData } = useQuery({
+    queryKey: ['video', videoId],
+    queryFn: () => Video.get(videoId),
+  });
+
+  const video = videoData || { id: '1', title: 'Loading...', description: '', thumbnail_url: '', video_url: '', duration: '0:00', views: 0, likes: 0, creator_name: 'Loading...', creator_avatar: '' };
+
   useEffect(() => {
-    const loadUser = async () => {
-      try {
-        // Save to watch history
-        if (videoId && user) {
-          await base44.entities.WatchHistory.create({
-            content_type: 'video',
-            content_id: videoId,
-            watched_at: new Date().toISOString(),
-            progress_seconds: 0,
-          });
-        }
-      } catch (e) {}
-    };
-    loadUser();
+    if (videoId && user) {
+      videoService.incrementViews('videos', videoId);
+    }
   }, [videoId, user]);
 
-  // Sample video data - indexed by id so each video has unique content
-  const SAMPLE_VIDEOS = {
-    '1': { id: '1', title: 'Full Body Workout - Build Muscle at Home (30 Min)', description: 'A complete at-home workout designed to build muscle and burn fat. No equipment needed — just your bodyweight and determination.', thumbnail_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1200', video_url: '', duration: '32:18', views: 5200000, likes: 312000, creator_name: 'FitLife', creator_avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop' },
-    '2': { id: '2', title: '5-Minute Meditation for Anxiety Relief', description: 'A short but powerful guided meditation to instantly calm your nervous system and reduce anxiety.', thumbnail_url: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1200', video_url: '', duration: '5:30', views: 8500000, likes: 510000, creator_name: 'Mindful Living', creator_avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=80&h=80&fit=crop' },
-    '3': { id: '3', title: 'How to Overcome Fear and Take Action', description: 'Fear is the #1 thing stopping you from your goals. In this video, we break down exactly how to push through it.', thumbnail_url: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=1200', video_url: '', duration: '18:33', views: 4200000, likes: 231000, creator_name: 'Success Mindset', creator_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop' },
-    '4': { id: '4', title: 'Morning Routine of Highly Productive People', description: 'Transform your mornings with these science-backed routines. Wake up energized and accomplish more.', thumbnail_url: 'https://images.unsplash.com/photo-1523875194681-bedd468c58bf?w=1200', video_url: '', duration: '15:42', views: 3900000, likes: 267000, creator_name: 'DailyDrive', creator_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&h=80&fit=crop' },
-    '5': { id: '5', title: 'Epic Gaming Moments Compilation 2024', description: 'The most insane gaming clips of 2024 in one place. Clutch plays, rage moments, and everything in between.', thumbnail_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200', video_url: '', duration: '22:40', views: 9100000, likes: 645000, creator_name: 'ProGamer', creator_avatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=80&h=80&fit=crop' },
-    '6': { id: '6', title: 'Geopolitics Explained: The Middle East Crisis', description: 'An in-depth analysis of the current geopolitical situation in the Middle East — history, causes, and what comes next.', thumbnail_url: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=1200', video_url: '', duration: '45:10', views: 3300000, likes: 198000, creator_name: 'WorldReport', creator_avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop' },
-    '7': { id: '7', title: 'Best Cooking Hacks You Need To Know', description: 'Professional chefs share their favorite kitchen hacks that will save you time and make everything taste better.', thumbnail_url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200', video_url: '', duration: '14:22', views: 6700000, likes: 402000, creator_name: 'ChefMike', creator_avatar: 'https://images.unsplash.com/photo-1577219491135-ce391730fb2c?w=80&h=80&fit=crop' },
-    '8': { id: '8', title: 'Investing for Beginners - Build Wealth in 2024', description: 'Everything you need to know to start investing — from index funds to real estate, explained simply.', thumbnail_url: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1200', video_url: '', duration: '28:45', views: 3100000, likes: 186000, creator_name: 'WealthPath', creator_avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=80&h=80&fit=crop' },
-    '9': { id: '9', title: 'Prank Wars: Office Edition 🔥', description: 'The most epic office pranks ever caught on camera. Warning: do not try these at your own workplace.', thumbnail_url: 'https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?w=1200', video_url: '', duration: '11:05', views: 14000000, likes: 980000, creator_name: 'PrankKing', creator_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop' },
-    '10': { id: '10', title: 'The Joe Rogan Experience - Best Moments', description: 'The most memorable, hilarious, and thought-provoking moments from JRE — all in one compilation.', thumbnail_url: 'https://images.unsplash.com/photo-1478737270239-2f02b77fc618?w=1200', video_url: '', duration: '58:00', views: 12000000, likes: 720000, creator_name: 'PodcastClips', creator_avatar: 'https://images.unsplash.com/photo-1556157382-97eda2d62296?w=80&h=80&fit=crop' },
-    '11': { id: '11', title: 'Deep Focus Music for Work', description: '2 hours of deep focus music — no lyrics, no distractions. Perfect for studying, coding, or creative work.', thumbnail_url: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=1200', video_url: '', duration: '120:00', views: 9500000, likes: 570000, creator_name: 'Focus Zone', creator_avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&h=80&fit=crop' },
-    '12': { id: '12', title: 'Yoga for Beginners - Complete Guide', description: 'A gentle, beginner-friendly yoga session covering all the foundational poses and breathing techniques.', thumbnail_url: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200', video_url: '', duration: '45:00', views: 4800000, likes: 288000, creator_name: 'YogaWithSarah', creator_avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&h=80&fit=crop' },
+  const handleTimeUpdate = () => {
+    if (!videoRef.current) return;
+    const time = videoRef.current.currentTime;
+    setCurrentTime(time);
+
+    // Ad every 10 minutes (600 seconds)
+    if (time - lastAdTime >= 600 && ads.length > 0) {
+      triggerAd();
+    }
   };
-  const video = SAMPLE_VIDEOS[videoId] || SAMPLE_VIDEOS['1'];
+
+  const triggerAd = () => {
+    if (ads.length === 0) return;
+    const randomAd = ads[Math.floor(Math.random() * ads.length)];
+    setCurrentAd(randomAd);
+    setShowAd(true);
+    setPlaying(false);
+    videoRef.current?.pause();
+    setLastAdTime(currentTime);
+  };
+
+  const handleVideoEnded = () => {
+    // If video < 10 mins and no ad shown yet, show ad at end
+    if (currentTime < 600 && lastAdTime === 0 && ads.length > 0) {
+      triggerAd();
+    }
+  };
+
+  const onAdComplete = () => {
+    setShowAd(false);
+    setCurrentAd(null);
+    setPlaying(true);
+    videoRef.current?.play();
+  };
+
+  const togglePlay = () => {
+    if (!videoRef.current) return;
+    if (playing) {
+      videoRef.current.pause();
+      setPlaying(false);
+    } else {
+      videoRef.current.play();
+      setPlaying(true);
+    }
+  };
+
+  const { data: relatedVideos = [] } = useQuery({
+    queryKey: ['related-videos', video?.category, videoId],
+    queryFn: async () => {
+      if (!video?.category) return [];
+      const { data, error } = await supabase
+        .from('videos')
+        .select('*')
+        .eq('category', video.category)
+        .neq('id', videoId)
+        .limit(10);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!video?.category,
+  });
 
   const { data: comments = [] } = useQuery({
     queryKey: ['comments', videoId],
-    queryFn: () => base44.entities.Comment.filter({ content_type: 'video', content_id: videoId }),
+    queryFn: () => Comment.find({ video_id: videoId }),
   });
 
   const { data: notes = [] } = useQuery({
     queryKey: ['video-notes', videoId, user?.id],
-    queryFn: () => user ? base44.entities.Note.filter({ video_id: videoId, user_id: user.id }) : [],
+    queryFn: () => user ? Note.find({ video_id: videoId, user_id: user.id }) : [],
     enabled: !!user,
   });
 
   const addCommentMutation = useMutation({
-    mutationFn: (data) => base44.entities.Comment.create(data),
+    mutationFn: (data) => Comment.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['comments', videoId]);
       setCommentText('');
@@ -121,7 +177,7 @@ export default function VideoPlayer() {
   });
 
   const addNoteMutation = useMutation({
-    mutationFn: (data) => base44.entities.Note.create(data),
+    mutationFn: (data) => Note.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries(['video-notes', videoId, user?.id]);
       setNoteTitle('');
@@ -132,11 +188,10 @@ export default function VideoPlayer() {
   const handleAddComment = () => {
     if (!commentText.trim() || !user) return;
     addCommentMutation.mutate({
-      content_type: 'video',
-      content_id: videoId,
-      user_id: user.id,
-      user_name: user.full_name,
-      text: commentText,
+      video_id: videoId,
+      author_id: user.id,
+      author_name: user.display_name || user.username || user.email.split('@')[0],
+      body: commentText,
     });
   };
 
@@ -209,8 +264,10 @@ export default function VideoPlayer() {
     setIsAiLoading(true);
 
     try {
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: `You are an AI assistant helping with a video titled "${video.title}". 
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: `You are an AI assistant helping with a video titled "${video.title}". 
         Video description: ${video.description}
         
         Help the user with questions about this video.
@@ -218,13 +275,15 @@ export default function VideoPlayer() {
         User question: ${aiInput}`,
       });
 
-      const assistantMsg = { role: 'assistant', content: response };
+      const responseText = response.text;
+      const assistantMsg = { role: 'assistant', content: responseText };
       setAiMessages(prev => {
         const next = [...prev, assistantMsg];
-        streamAiResponse(response, next.length - 1);
+        streamAiResponse(responseText, next.length - 1);
         return next;
       });
     } catch (error) {
+      console.error('AI Error:', error);
       const errMsg = 'Sorry, I encountered an error.';
       setAiMessages(prev => {
         const next = [...prev, { role: 'assistant', content: errMsg }];
@@ -241,33 +300,70 @@ export default function VideoPlayer() {
       {/* Main Video Area */}
       <div className="flex-1 pr-3">
         {/* Video Player */}
-        <div className="relative aspect-video bg-black rounded-xl overflow-hidden mb-4">
-          <img 
-            src={video.thumbnail_url} 
-            alt={video.title}
-            className="w-full h-full object-cover"
-          />
-          {/* Video Controls Overlay */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-            <div className="flex items-center gap-4">
-              <button className="text-white hover:text-purple-400">
-                <Play className="w-6 h-6" />
-              </button>
-              <div className="flex-1 h-1 bg-white/30 rounded-full">
-                <div className="h-full w-0 bg-purple-500 rounded-full" />
+        <div className="relative aspect-video bg-black rounded-xl overflow-hidden mb-4 group">
+          {showAd && currentAd ? (
+            <VideoAd ad={currentAd} onComplete={onAdComplete} />
+          ) : (
+            <>
+              <video
+                ref={videoRef}
+                src={video.video_url}
+                poster={video.thumbnail_url}
+                className="w-full h-full cursor-pointer"
+                onClick={togglePlay}
+                onTimeUpdate={handleTimeUpdate}
+                onEnded={handleVideoEnded}
+                onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)}
+              />
+              
+              {/* Custom Controls Overlay */}
+              <div className={`absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent transition-opacity duration-300 ${playing ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'}`}>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <button 
+                    onClick={togglePlay}
+                    className="w-16 h-16 bg-purple-600/80 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform"
+                  >
+                    {playing ? <Pause className="w-8 h-8 fill-white" /> : <Play className="w-8 h-8 fill-white ml-1" />}
+                  </button>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <div className="h-1 bg-white/20 rounded-full mb-4 relative cursor-pointer group/progress">
+                    <div 
+                      className="absolute h-full bg-purple-500 rounded-full" 
+                      style={{ width: `${(currentTime / duration) * 100}%` }}
+                    />
+                    <div 
+                      className="absolute w-3 h-3 bg-white rounded-full -top-1 opacity-0 group-hover/progress:opacity-100 transition-opacity"
+                      style={{ left: `${(currentTime / duration) * 100}%`, transform: 'translateX(-50%)' }}
+                    />
+                  </div>
+                  
+                  <div className="flex items-center justify-between text-white text-sm">
+                    <div className="flex items-center gap-4">
+                      <button onClick={togglePlay}>
+                        {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <Volume2 className="w-5 h-5" />
+                        <div className="w-20 h-1 bg-white/20 rounded-full">
+                          <div className="w-3/4 h-full bg-white rounded-full" />
+                        </div>
+                      </div>
+                      <span className="font-mono">
+                        {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, '0')} / {video.duration}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <Settings className="w-5 h-5 cursor-pointer hover:rotate-45 transition-transform" />
+                      <Maximize className="w-5 h-5 cursor-pointer" />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <span className="text-white text-sm">0:00 / {video.duration}</span>
-              <button className="text-white hover:text-purple-400">
-                <Volume2 className="w-5 h-5" />
-              </button>
-              <button className="text-white hover:text-purple-400">
-                <Maximize className="w-5 h-5" />
-              </button>
-              <button className="text-white hover:text-purple-400">
-                <MoreVertical className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
         {/* Video Info */}
@@ -345,7 +441,7 @@ export default function VideoPlayer() {
           {/* Add Comment */}
           <div className="flex gap-3 mb-6">
             <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex-shrink-0 flex items-center justify-center text-white font-medium">
-              {user?.displayName?.[0]?.toUpperCase() || 'U'}
+              {user?.display_name?.[0]?.toUpperCase() || 'U'}
             </div>
             <div className="flex-1">
               <Input
@@ -366,14 +462,14 @@ export default function VideoPlayer() {
             {comments.map((comment) => (
               <div key={comment.id} className="flex gap-3">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex-shrink-0 flex items-center justify-center text-white font-medium">
-                  {comment.user_name?.[0]?.toUpperCase() || 'U'}
+                  {comment.author_name?.[0]?.toUpperCase() || 'U'}
                 </div>
                 <div>
                   <p className={`text-sm ${isLight ? 'text-black' : 'text-white'}`}>
-                    <span className="font-medium">{comment.user_name}</span>
+                    <span className="font-medium">{comment.author_name}</span>
                     <span className="text-gray-500 ml-2">1 hour ago</span>
                   </p>
-                  <p className={`text-sm mt-1 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>{comment.text}</p>
+                  <p className={`text-sm mt-1 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>{comment.body}</p>
                 </div>
               </div>
             ))}
@@ -559,7 +655,7 @@ export default function VideoPlayer() {
         <div>
           <h3 className={`font-semibold mb-4 ${isLight ? 'text-black' : 'text-white'}`}>Related Videos</h3>
           <div className="space-y-4">
-            {sampleRelatedVideos.map((relVideo) => (
+            {relatedVideos.map((relVideo) => (
               <Link 
                 key={relVideo.id} 
                 to={createPageUrl(`VideoPlayer?id=${relVideo.id}`)}
@@ -581,7 +677,7 @@ export default function VideoPlayer() {
                   </h4>
                   <p className={`text-xs mt-1 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>{relVideo.creator_name}</p>
                   <p className="text-gray-500 text-xs">
-                    {relVideo.views?.toLocaleString()} views • 7 days ago
+                    {relVideo.views?.toLocaleString()} views • {relVideo.created_at ? new Date(relVideo.created_at).toLocaleDateString() : 'Just now'}
                   </p>
                 </div>
               </Link>

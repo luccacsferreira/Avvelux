@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { Course } from '@/api/entities';
+import { Core } from '@/api/integrations';
 import { useQuery } from '@tanstack/react-query';
 import { Play, Clock, ChevronRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import { createPageUrl } from '../utils';
@@ -62,7 +63,7 @@ export default function Courses() {
 
   const { data: dbCourses = [] } = useQuery({
     queryKey: ['courses'],
-    queryFn: () => base44.entities.Course.list('-created_date', 50),
+    queryFn: () => Course.list('-created_date', 50),
   });
 
   const courses = dbCourses.length > 0 ? dbCourses : SAMPLE_COURSES;
@@ -173,7 +174,7 @@ function CoursePlayer({ course, activeLessonId, isLight }) {
     setAiMessages(prev => [...prev, { role: 'user', content: q }]);
     setAiInput('');
     setAiLoading(true);
-    const res = await base44.integrations.Core.InvokeLLM({
+    const res = await Core.InvokeLLM({
       prompt: `You are an AI learning assistant for the course "${course.title}". The user is currently watching "${currentLesson?.title}". Answer concisely.\n\nQuestion: ${q}`,
     });
     setAiMessages(prev => [...prev, { role: 'assistant', content: res }]);

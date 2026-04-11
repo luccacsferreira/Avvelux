@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient as base44 } from '@/api/apiClient';
+import { auth } from '@/api/sdk';
+import { Playlist } from '@/api/entities';
 import { useQuery } from '@tanstack/react-query';
 import { ListVideo, Plus } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ export default function Playlists() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const userData = await base44.auth.me();
+        const userData = await auth.me();
         setUser(userData);
       } catch (e) {}
     };
@@ -20,7 +21,7 @@ export default function Playlists() {
 
   const { data: playlists = [] } = useQuery({
     queryKey: ['playlists', user?.email],
-    queryFn: () => user ? base44.entities.Playlist.filter({ created_by: user.email }, '-created_date') : [],
+    queryFn: () => user ? Playlist.filter({ created_by: user.email }, '-created_date') : [],
     enabled: !!user,
   });
 
