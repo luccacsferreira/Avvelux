@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 export const videoService = {
   async uploadFile(file, bucket = 'videos') {
     try {
+      console.log(`Starting upload to bucket: ${bucket}, file: ${file.name}`);
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${fileName}`;
@@ -11,21 +12,26 @@ export const videoService = {
         .from(bucket)
         .upload(filePath, file);
 
-      if (error) throw error;
+      if (error) {
+        console.error(`Supabase Storage Error (${bucket}):`, error);
+        throw error;
+      }
 
+      console.log(`File uploaded successfully to ${bucket}/${filePath}`);
       const { data: { publicUrl } } = supabase.storage
         .from(bucket)
         .getPublicUrl(filePath);
 
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error(`Detailed Upload Error (${bucket}):`, error);
       throw error;
     }
   },
 
   async uploadVideo(videoData) {
     try {
+      console.log('Inserting video metadata:', videoData);
       const { data, error } = await supabase
         .from('videos')
         .insert([{
@@ -36,16 +42,22 @@ export const videoService = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase Database Error (videos):', error);
+        throw error;
+      }
+      
+      console.log('Video metadata inserted successfully, ID:', data.id);
       return data.id;
     } catch (error) {
-      console.error('Error uploading video:', error);
+      console.error('Detailed Video Insert Error:', error);
       throw error;
     }
   },
 
   async uploadClip(clipData) {
     try {
+      console.log('Inserting clip metadata:', clipData);
       const { data, error } = await supabase
         .from('clips')
         .insert([{
@@ -56,10 +68,15 @@ export const videoService = {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase Database Error (clips):', error);
+        throw error;
+      }
+
+      console.log('Clip metadata inserted successfully, ID:', data.id);
       return data.id;
     } catch (error) {
-      console.error('Error uploading clip:', error);
+      console.error('Detailed Clip Insert Error:', error);
       throw error;
     }
   },

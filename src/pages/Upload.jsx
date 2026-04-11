@@ -189,7 +189,8 @@ export default function Upload() {
       setShowSuccessDialog(true);
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Failed to upload content');
+      const errorMessage = error.message || error.error_description || 'Failed to upload content';
+      toast.error(`Upload failed: ${errorMessage}`);
       setIsUploading(false);
     }
   };

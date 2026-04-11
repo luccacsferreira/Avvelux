@@ -65,6 +65,29 @@ create table if not exists public.posts (
   updated_at timestamptz not null default now()
 );
 
+-- Ensure columns exist if tables were already created
+do $$ 
+begin
+  if not exists (select 1 from information_schema.columns where table_name='videos' and column_name='creator_name') then
+    alter table public.videos add column creator_name text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='videos' and column_name='creator_avatar') then
+    alter table public.videos add column creator_avatar text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='creator_name') then
+    alter table public.clips add column creator_name text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='creator_avatar') then
+    alter table public.clips add column creator_avatar text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='videos' and column_name='likes_count') then
+    alter table public.videos add column likes_count integer default 0;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='likes_count') then
+    alter table public.clips add column likes_count integer default 0;
+  end if;
+end $$;
+
 -- Ads (Publicly viewable)
 create table if not exists public.ads (
   id uuid primary key default gen_random_uuid (),
