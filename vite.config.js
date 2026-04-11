@@ -4,7 +4,7 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/Avvelux/',
+  base: './',
   logLevel: 'error', // Suppress warnings, only show errors
   resolve: {
     alias: {
