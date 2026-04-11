@@ -50,19 +50,19 @@ export default function Account() {
 
   const { data: videos = [] } = useQuery({
     queryKey: ['my-videos', user?.id],
-    queryFn: () => user ? Video.filter({ creator_id: user.id }, '-created_date') : [],
+    queryFn: () => user ? Video.filter({ creator_id: user.id }, '-created_at') : [],
     enabled: !!user,
   });
 
   const { data: clips = [] } = useQuery({
     queryKey: ['my-clips', user?.id],
-    queryFn: () => user ? Clip.filter({ creator_id: user.id }, '-created_date') : [],
+    queryFn: () => user ? Clip.filter({ creator_id: user.id }, '-created_at') : [],
     enabled: !!user,
   });
 
   const { data: posts = [] } = useQuery({
     queryKey: ['my-posts', user?.id],
-    queryFn: () => user ? Post.filter({ creator_id: user.id }, '-created_date') : [],
+    queryFn: () => user ? Post.filter({ creator_id: user.id }, '-created_at') : [],
     enabled: !!user,
   });
 

@@ -407,7 +407,7 @@ export default function VideoPlayer() {
               }
             >
               <Heart className={`w-4 h-4 mr-2 ${liked ? 'fill-current' : ''}`} />
-              {formatCount((video.likes || 0) + (liked ? 1 : 0))}
+              {formatCount((video.likes_count || 0) + (liked ? 1 : 0))}
             </Button>
             <Button className={isLight ? 'bg-gray-100 border border-gray-200 text-black hover:bg-gray-200' : 'bg-[#333] border-[#333] text-gray-200 hover:bg-[#3a3a3a]'}>
               <Share2 className="w-4 h-4 mr-2" />

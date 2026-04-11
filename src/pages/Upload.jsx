@@ -153,7 +153,6 @@ export default function Upload() {
         creator_name: user.display_name || user.username || user.email?.split('@')[0] || 'User', 
         creator_avatar: user.avatar_url || '',
         privacy: formData.privacy,
-        created_at: new Date().toISOString()
       };
 
       if (activeTab === 'Video' || activeTab === 'Clips') {
@@ -166,7 +165,7 @@ export default function Upload() {
           video_url: videoUrl,
           thumbnail_url: thumbnailUrl,
           views: 0,
-          likes: 0,
+          likes_count: 0,
         };
         if (activeTab === 'Video') {
           await videoService.uploadVideo(data);
@@ -181,7 +180,7 @@ export default function Upload() {
           image_url: postType === 'image' ? imageUrl : '',
           is_poll: postType === 'poll',
           poll_options: postType === 'poll' ? pollOptions.filter(o => o.trim()).map(text => ({ text, votes: 0 })) : [],
-          likes: 0,
+          likes_count: 0,
           comments_count: 0,
         });
       }

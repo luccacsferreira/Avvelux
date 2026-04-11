@@ -28,7 +28,7 @@ export default function Profile() {
   const isLight = theme === 'light';
 
   useEffect(() => {
-    const loadUsers = async () => {
+    const loadProfile = async () => {
       try {
         const me = await auth.me();
         setCurrentUser(me);
@@ -36,21 +36,18 @@ export default function Profile() {
 
       if (profileId) {
         try {
-          const users = await User.list();
-          const foundUser = users.find(u => u.id === profileId);
-          if (foundUser) {
-            setProfileUser(foundUser);
+          const profileData = await User.get(profileId);
+          if (profileData) {
+            setProfileUser(profileData);
           } else {
-            // Profile not found, set a placeholder
             setProfileUser({ id: profileId, full_name: 'User', email: 'user@example.com' });
           }
         } catch (e) {
-          // Set placeholder if error
           setProfileUser({ id: profileId, full_name: 'User', email: 'user@example.com' });
         }
       }
     };
-    loadUsers();
+    loadProfile();
   }, [profileId]);
 
   const { data: followers = [] } = useQuery({
@@ -73,7 +70,7 @@ export default function Profile() {
 
   const { data: clips = [] } = useQuery({
     queryKey: ['profile-clips', profileId],
-    queryFn: () => profileId ? Clip.filter({ creator_id: profileId, privacy: 'public' }, '-created_at') : [],
+    queryFn: () => profileId ? Clip.filter({ creator_id: profileId }, '-created_at') : [],
     enabled: !!profileId,
   });
 

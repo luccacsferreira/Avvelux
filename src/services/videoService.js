@@ -30,6 +30,7 @@ export const videoService = {
         .from('videos')
         .insert([{
           ...videoData,
+          likes_count: videoData.likes || 0,
           created_at: new Date().toISOString(),
         }])
         .select()
@@ -49,6 +50,7 @@ export const videoService = {
         .from('clips')
         .insert([{
           ...clipData,
+          likes_count: clipData.likes || 0,
           created_at: new Date().toISOString(),
         }])
         .select()
@@ -139,7 +141,7 @@ export const videoService = {
     const { data, error } = await supabase
       .from('playlists')
       .select('*')
-      .eq('creator_id', userId)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
     if (error) throw error;
     return data;
@@ -148,7 +150,7 @@ export const videoService = {
   async createPlaylist(userId, name, isPublic = false) {
     const { data, error } = await supabase
       .from('playlists')
-      .insert([{ creator_id: userId, name, is_public: isPublic }])
+      .insert([{ user_id: userId, name, is_public: isPublic }])
       .select()
       .single();
     if (error) throw error;
@@ -182,21 +184,22 @@ export const videoService = {
   },
 
   // Watch History
-  async addToHistory(userId, videoId) {
+  async addToHistory(userId, contentId, contentType = 'video') {
     const { error } = await supabase
       .from('watch_history')
       .upsert({
         user_id: userId,
-        video_id: videoId,
+        content_id: contentId,
+        content_type: contentType,
         watched_at: new Date().toISOString()
-      }, { onConflict: 'user_id, video_id' });
+      }, { onConflict: 'user_id, content_id, content_type' });
     if (error) console.error('Error adding to history:', error);
   },
 
   async getWatchHistory(userId) {
     const { data, error } = await supabase
       .from('watch_history')
-      .select('*, videos(*)')
+      .select('*, videos(*), clips(*)')
       .eq('user_id', userId)
       .order('watched_at', { ascending: false });
     if (error) throw error;

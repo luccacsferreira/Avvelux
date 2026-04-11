@@ -17,6 +17,8 @@ create table if not exists public.profiles (
 create table if not exists public.videos (
   id uuid primary key default gen_random_uuid (),
   creator_id uuid not null references auth.users (id) on delete cascade,
+  creator_name text,
+  creator_avatar text,
   title text not null,
   description text,
   video_url text not null,
@@ -35,12 +37,32 @@ create table if not exists public.videos (
 create table if not exists public.clips (
   id uuid primary key default gen_random_uuid (),
   creator_id uuid not null references auth.users (id) on delete cascade,
+  creator_name text,
+  creator_avatar text,
   title text not null,
   video_url text not null,
   thumbnail_url text,
   views integer default 0,
   likes_count integer default 0,
   created_at timestamptz not null default now()
+);
+
+-- Posts (Publicly viewable)
+create table if not exists public.posts (
+  id uuid primary key default gen_random_uuid (),
+  creator_id uuid not null references auth.users (id) on delete cascade,
+  creator_name text,
+  creator_avatar text,
+  title text not null,
+  content text,
+  image_url text,
+  is_poll boolean default false,
+  poll_options jsonb default '[]'::jsonb,
+  likes_count integer default 0,
+  comments_count integer default 0,
+  privacy text default 'public',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 -- Ads (Publicly viewable)
@@ -133,11 +155,30 @@ create table if not exists public.watch_later (
 create table if not exists public.notes (
   id uuid primary key default gen_random_uuid (),
   user_id uuid not null references auth.users (id) on delete cascade,
-  content_id uuid, -- Optional: link note to a video/course
+  video_id uuid references public.videos (id) on delete cascade,
   title text,
   body text not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
+);
+
+-- Comments (Publicly viewable)
+create table if not exists public.comments (
+  id uuid primary key default gen_random_uuid (),
+  video_id uuid not null references public.videos (id) on delete cascade,
+  author_id uuid not null references auth.users (id) on delete cascade,
+  author_name text,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
+-- Follows
+create table if not exists public.follows (
+  id uuid primary key default gen_random_uuid (),
+  follower_id uuid not null references auth.users (id) on delete cascade,
+  following_id uuid not null references auth.users (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique(follower_id, following_id)
 );
 
 -- Device/Account Mapping (Private - tracks accounts used on a device)
@@ -182,6 +223,7 @@ create trigger on_auth_user_created
 alter table public.profiles enable row level security;
 alter table public.videos enable row level security;
 alter table public.clips enable row level security;
+alter table public.posts enable row level security;
 alter table public.ads enable row level security;
 alter table public.courses enable row level security;
 alter table public.communities enable row level security;
@@ -191,15 +233,20 @@ alter table public.likes enable row level security;
 alter table public.watch_history enable row level security;
 alter table public.watch_later enable row level security;
 alter table public.notes enable row level security;
+alter table public.comments enable row level security;
+alter table public.follows enable row level security;
 alter table public.user_accounts enable row level security;
 
 -- PUBLIC READ POLICIES
 create policy "Public read profiles" on public.profiles for select using (true);
 create policy "Public read videos" on public.videos for select using (true);
 create policy "Public read clips" on public.clips for select using (true);
+create policy "Public read posts" on public.posts for select using (true);
 create policy "Public read ads" on public.ads for select using (true);
 create policy "Public read courses" on public.courses for select using (true);
 create policy "Public read communities" on public.communities for select using (true);
+create policy "Public read comments" on public.comments for select using (true);
+create policy "Public read follows" on public.follows for select using (true);
 
 -- PRIVATE READ POLICIES (Owner only)
 create policy "Owner read history" on public.watch_history for select using (auth.uid() = user_id);
@@ -216,6 +263,7 @@ for select using (auth.uid() = user_id or is_public = true);
 create policy "Users can update own profile" on public.profiles for update using (auth.uid() = id);
 create policy "Users can manage own videos" on public.videos for all using (auth.uid() = creator_id);
 create policy "Users can manage own clips" on public.clips for all using (auth.uid() = creator_id);
+create policy "Users can manage own posts" on public.posts for all using (auth.uid() = creator_id);
 create policy "Users can manage own courses" on public.courses for all using (auth.uid() = creator_id);
 create policy "Users can manage own communities" on public.communities for all using (auth.uid() = creator_id);
 create policy "Users can manage own playlists" on public.playlists for all using (auth.uid() = user_id);
@@ -225,6 +273,8 @@ create policy "Users can manage own likes" on public.likes for all using (auth.u
 create policy "Users can manage own history" on public.watch_history for all using (auth.uid() = user_id);
 create policy "Users can manage own watch later" on public.watch_later for all using (auth.uid() = user_id);
 create policy "Users can manage own notes" on public.notes for all using (auth.uid() = user_id);
+create policy "Users can manage own comments" on public.comments for all using (auth.uid() = author_id);
+create policy "Users can manage own follows" on public.follows for all using (auth.uid() = follower_id);
 
 -- ==========================================
 -- 5. STORAGE BUCKETS SETUP
@@ -239,14 +289,15 @@ values
   ('avatars', 'avatars', true),
   ('ads', 'ads', true),
   ('courses', 'courses', true),
-  ('communities', 'communities', true)
+  ('communities', 'communities', true),
+  ('posts', 'posts', true)
 on conflict (id) do nothing;
 
 -- STORAGE POLICIES
 -- 1. Public Read Access
 create policy "Public Access" 
 on storage.objects for select 
-using ( bucket_id in ('videos', 'clips', 'thumbnails', 'avatars', 'ads', 'courses', 'communities') );
+using ( bucket_id in ('videos', 'clips', 'thumbnails', 'avatars', 'ads', 'courses', 'communities', 'posts') );
 
 -- 2. Authenticated Upload
 create policy "Authenticated Upload" 

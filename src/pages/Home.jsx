@@ -6,6 +6,7 @@ import ClipCard from '../components/feed/ClipCard';
 import PostCard from '../components/feed/PostCard';
 import EmptyState from '../components/common/EmptyState';
 import { useAuth } from '@/lib/AuthContext';
+import { getInitialTheme } from '@/lib/theme';
 
 const MAIN_CATEGORIES = [
   'All', 'Gaming', 'Podcasts', 'Pranks', 'Geopolitics', 'React Videos',
@@ -16,9 +17,9 @@ const MAIN_CATEGORIES = [
 ];
 
 const useTheme = () => {
-  const [isLight, setIsLight] = useState(() => localStorage.getItem('avvelux-theme') === 'light');
+  const [isLight, setIsLight] = useState(() => getInitialTheme() === 'light');
   useEffect(() => {
-    const syncTheme = () => setIsLight(localStorage.getItem('avvelux-theme') === 'light');
+    const syncTheme = () => setIsLight(getInitialTheme() === 'light');
     window.addEventListener('avvelux-theme-changed', syncTheme);
     return () => window.removeEventListener('avvelux-theme-changed', syncTheme);
   }, []);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from './utils';
 import { useAuth } from '@/lib/AuthContext';
+import { getInitialTheme } from '@/lib/theme';
 import { 
   Home, Film, TrendingUp, Lightbulb, 
   Library, Clock, FileText, ListVideo, Heart,
@@ -21,16 +22,6 @@ import {
 
 const LOGO_DARK = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6984d4f6d54057de7ab5c393/929e340e8_avvelux_square_exact.png";
 const LOGO_LIGHT = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6984d4f6d54057de7ab5c393/dfafbe62b_avvelux_gradient_rounded_more.png";
-
-function getInitialTheme() {
-  const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('avvelux-theme') : null;
-  // Explicitly set to light or dark by user → respect that
-  if (saved === 'light') return 'light';
-  if (saved === 'dark') return 'dark';
-  // 'device' or null/unset → follow the OS/browser preference
-  if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
-  return 'light';
-}
 
 export default function Layout({ children, currentPageName }) {
   const { user, signOut, requireAuth } = useAuth();

@@ -11,6 +11,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import { getInitialTheme } from '@/lib/theme';
 
 import LoginModal from './components/auth/LoginModal';
 
@@ -24,13 +25,34 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, user, authError } = useAuth();
+  const [theme] = useState(getInitialTheme());
 
   if (isLoadingAuth) {
+    const videoSrc = theme === 'dark' ? '/Add a heading (2).mp4' : '/Add a heading (3).mp4';
+    const bgColor = theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-white';
+    
     return (
-      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-gray-400 font-medium animate-pulse">Initializing Avvelux...</p>
+      <div className={`flex items-center justify-center min-h-screen ${bgColor} overflow-hidden`}>
+        <div className="relative w-full h-full flex items-center justify-center">
+          <video 
+            autoPlay 
+            muted 
+            playsInline 
+            className="max-w-md w-full h-auto"
+            onEnded={(e) => {
+              // Optional: if the video is short, we might want to loop or just stay on the last frame
+              // But usually auth takes 1-3 seconds, so one play is likely enough
+            }}
+          >
+            <source src={videoSrc} type="video/mp4" />
+          </video>
+          {/* Fallback if video fails or is loading */}
+          <div className="absolute bottom-10 left-0 right-0 flex flex-col items-center gap-2">
+            <div className={`w-8 h-8 border-2 ${theme === 'dark' ? 'border-purple-500' : 'border-purple-600'} border-t-transparent rounded-full animate-spin`}></div>
+            <p className={`text-xs font-medium animate-pulse ${theme === 'dark' ? 'text-gray-500' : 'text-gray-400'}`}>
+              Initializing Avvelux...
+            </p>
+          </div>
         </div>
       </div>
     );
