@@ -261,42 +261,96 @@ alter table public.follows enable row level security;
 alter table public.user_accounts enable row level security;
 
 -- PUBLIC READ POLICIES
+drop policy if exists "Public read profiles" on public.profiles;
 create policy "Public read profiles" on public.profiles for select using (true);
-create policy "Public read videos" on public.videos for select using (true);
+
+drop policy if exists "Public read videos" on public.videos;
+create policy "Public read videos" on public.videos for select using (privacy in ('public', 'unlisted') or auth.uid() = creator_id);
+
+drop policy if exists "Public read clips" on public.clips;
 create policy "Public read clips" on public.clips for select using (true);
-create policy "Public read posts" on public.posts for select using (true);
+
+drop policy if exists "Public read posts" on public.posts;
+create policy "Public read posts" on public.posts for select using (privacy in ('public', 'unlisted') or auth.uid() = creator_id);
+
+drop policy if exists "Public read ads" on public.ads;
 create policy "Public read ads" on public.ads for select using (true);
+
+drop policy if exists "Public read courses" on public.courses;
 create policy "Public read courses" on public.courses for select using (true);
+
+drop policy if exists "Public read communities" on public.communities;
 create policy "Public read communities" on public.communities for select using (true);
+
+drop policy if exists "Public read comments" on public.comments;
 create policy "Public read comments" on public.comments for select using (true);
+
+drop policy if exists "Public read follows" on public.follows;
 create policy "Public read follows" on public.follows for select using (true);
 
 -- PRIVATE READ POLICIES (Owner only)
+drop policy if exists "Owner read history" on public.watch_history;
 create policy "Owner read history" on public.watch_history for select using (auth.uid() = user_id);
+
+drop policy if exists "Owner read watch later" on public.watch_later;
 create policy "Owner read watch later" on public.watch_later for select using (auth.uid() = user_id);
+
+drop policy if exists "Owner read notes" on public.notes;
 create policy "Owner read notes" on public.notes for select using (auth.uid() = user_id);
+
+drop policy if exists "Owner read likes" on public.likes;
 create policy "Owner read likes" on public.likes for select using (auth.uid() = user_id);
+
+drop policy if exists "Owner read accounts" on public.user_accounts;
 create policy "Owner read accounts" on public.user_accounts for select using (auth.uid() = user_id);
 
 -- PLAYLISTS POLICY (Owner or Public)
+drop policy if exists "Viewable playlists" on public.playlists;
 create policy "Viewable playlists" on public.playlists 
 for select using (auth.uid() = user_id or is_public = true);
 
 -- WRITE POLICIES (Authenticated Users)
+drop policy if exists "Users can update own profile" on public.profiles;
 create policy "Users can update own profile" on public.profiles for update using (auth.uid() = id);
+
+drop policy if exists "Users can manage own videos" on public.videos;
 create policy "Users can manage own videos" on public.videos for all using (auth.uid() = creator_id);
+
+drop policy if exists "Users can manage own clips" on public.clips;
 create policy "Users can manage own clips" on public.clips for all using (auth.uid() = creator_id);
+
+drop policy if exists "Users can manage own posts" on public.posts;
 create policy "Users can manage own posts" on public.posts for all using (auth.uid() = creator_id);
+
+drop policy if exists "Users can manage own courses" on public.courses;
 create policy "Users can manage own courses" on public.courses for all using (auth.uid() = creator_id);
+
+drop policy if exists "Users can manage own communities" on public.communities;
 create policy "Users can manage own communities" on public.communities for all using (auth.uid() = creator_id);
+
+drop policy if exists "Users can manage own playlists" on public.playlists;
 create policy "Users can manage own playlists" on public.playlists for all using (auth.uid() = user_id);
+
+drop policy if exists "Users can manage own playlist items" on public.playlist_items;
 create policy "Users can manage own playlist items" on public.playlist_items for all 
 using (exists (select 1 from public.playlists where id = playlist_id and user_id = auth.uid()));
+
+drop policy if exists "Users can manage own likes" on public.likes;
 create policy "Users can manage own likes" on public.likes for all using (auth.uid() = user_id);
+
+drop policy if exists "Users can manage own history" on public.watch_history;
 create policy "Users can manage own history" on public.watch_history for all using (auth.uid() = user_id);
+
+drop policy if exists "Users can manage own watch later" on public.watch_later;
 create policy "Users can manage own watch later" on public.watch_later for all using (auth.uid() = user_id);
+
+drop policy if exists "Users can manage own notes" on public.notes;
 create policy "Users can manage own notes" on public.notes for all using (auth.uid() = user_id);
+
+drop policy if exists "Users can manage own comments" on public.comments;
 create policy "Users can manage own comments" on public.comments for all using (auth.uid() = author_id);
+
+drop policy if exists "Users can manage own follows" on public.follows;
 create policy "Users can manage own follows" on public.follows for all using (auth.uid() = follower_id);
 
 -- ==========================================
@@ -318,16 +372,19 @@ on conflict (id) do nothing;
 
 -- STORAGE POLICIES
 -- 1. Public Read Access
+drop policy if exists "Public Access" on storage.objects;
 create policy "Public Access" 
 on storage.objects for select 
 using ( bucket_id in ('videos', 'clips', 'thumbnails', 'avatars', 'ads', 'courses', 'communities', 'posts') );
 
 -- 2. Authenticated Upload
+drop policy if exists "Authenticated Upload" on storage.objects;
 create policy "Authenticated Upload" 
 on storage.objects for insert 
 with check ( auth.role() = 'authenticated' );
 
 -- 3. Owner Delete/Update
+drop policy if exists "Owner Manage" on storage.objects;
 create policy "Owner Manage" 
 on storage.objects for all 
 using ( auth.uid() = owner );

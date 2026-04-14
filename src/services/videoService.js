@@ -86,6 +86,7 @@ export const videoService = {
       let query = supabase
         .from('videos')
         .select('*')
+        .eq('privacy', 'public') // Only show public videos in general feeds
         .order('created_at', { ascending: false })
         .limit(limitCount);
 
@@ -102,11 +103,28 @@ export const videoService = {
     }
   },
 
+  async getVideoById(id) {
+    try {
+      const { data, error } = await supabase
+        .from('videos')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error getting video by id:', error);
+      return null;
+    }
+  },
+
   async getClips(limitCount = 50) {
     try {
       const { data, error } = await supabase
         .from('clips')
         .select('*')
+        .eq('privacy', 'public') // Only show public clips in general feeds
         .order('created_at', { ascending: false })
         .limit(limitCount);
 

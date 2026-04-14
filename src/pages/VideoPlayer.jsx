@@ -84,7 +84,7 @@ export default function VideoPlayer() {
 
   const { data: videoData } = useQuery({
     queryKey: ['video', videoId],
-    queryFn: () => Video.get(videoId),
+    queryFn: () => videoService.getVideoById(videoId),
   });
 
   const video = videoData || { id: '1', title: 'Loading...', description: '', thumbnail_url: '', video_url: '', duration: '0:00', views: 0, likes: 0, creator_name: 'Loading...', creator_avatar: '' };
@@ -149,6 +149,7 @@ export default function VideoPlayer() {
         .from('videos')
         .select('*')
         .eq('category', video.category)
+        .eq('privacy', 'public') // Only show public videos in related section
         .neq('id', videoId)
         .limit(10);
       if (error) throw error;

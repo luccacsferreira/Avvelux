@@ -109,6 +109,7 @@ export default function Home() {
         const { data: p, error: pError } = await supabase
           .from('posts')
           .select('*')
+          .eq('privacy', 'public') // Only show public posts in general feeds
           .order('created_at', { ascending: false })
           .limit(10);
         
