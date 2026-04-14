@@ -5,7 +5,9 @@ import { useQuery } from '@tanstack/react-query';
 
 export default function PageNotFound({}) {
     const location = useLocation();
-    const pageName = location.pathname.substring(1) || 'index';
+    // In HashRouter, the pathname is relative to the hash. 
+    // If it's empty or just '/', we show 'Home'
+    const pageName = location.pathname === '/' ? 'Home' : location.pathname.substring(1);
 
     const { data: authData, isFetched } = useQuery({
         queryKey: ['user'],
