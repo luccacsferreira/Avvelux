@@ -28,7 +28,7 @@ const AuthenticatedApp = () => {
   const [theme] = useState(getInitialTheme());
 
   if (isLoadingAuth) {
-    const videoSrc = theme === 'dark' ? '/Add a heading (2).mp4' : '/Add a heading (3).mp4';
+    const videoSrc = theme === 'dark' ? 'Add a heading (2).mp4' : 'Add a heading (3).mp4';
     const bgColor = theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-white';
     
     return (
