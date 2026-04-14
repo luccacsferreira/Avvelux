@@ -27,8 +27,16 @@ const AuthenticatedApp = () => {
   const { isLoadingAuth, user, authError } = useAuth();
   const [theme] = useState(getInitialTheme());
 
+  // Dynamic Favicon Switcher
+  useEffect(() => {
+    const favicon = document.querySelector('link[rel="icon"]');
+    if (favicon) {
+      favicon.href = theme === 'dark' ? 'logo-dark.png' : 'logo-light.png';
+    }
+  }, [theme]);
+
   if (isLoadingAuth) {
-    const videoSrc = theme === 'dark' ? 'Add a heading (2).mp4' : 'Add a heading (3).mp4';
+    const videoSrc = theme === 'dark' ? 'Intro-dark.mp4' : 'Intro-light.mp4';
     const bgColor = theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-white';
     
     return (

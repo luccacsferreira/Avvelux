@@ -124,7 +124,6 @@ export const videoService = {
       const { data, error } = await supabase
         .from('clips')
         .select('*')
-        .eq('privacy', 'public') // Only show public clips in general feeds
         .order('created_at', { ascending: false })
         .limit(limitCount);
 
@@ -132,6 +131,8 @@ export const videoService = {
       return data || [];
     } catch (error) {
       console.error('Error getting clips:', error);
+      if (error.details) console.error('Error details:', error.details);
+      if (error.hint) console.error('Error hint:', error.hint);
       return [];
     }
   },

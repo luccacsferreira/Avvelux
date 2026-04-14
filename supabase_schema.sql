@@ -42,6 +42,7 @@ create table if not exists public.clips (
   title text not null,
   video_url text not null,
   thumbnail_url text,
+  privacy text default 'public',
   views integer default 0,
   likes_count integer default 0,
   created_at timestamptz not null default now()
