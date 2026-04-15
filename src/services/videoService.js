@@ -240,5 +240,42 @@ export const videoService = {
       .order('watched_at', { ascending: false });
     if (error) throw error;
     return data;
+  },
+  
+  async getVideosByUser(userId, currentUserId = null) {
+    let query = supabase.from('videos').select('*').eq('creator_id', userId);
+    
+    // If not the owner, only show public/unlisted
+    if (userId !== currentUserId) {
+      query = query.in('privacy', ['public', 'unlisted']);
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getClipsByUser(userId, currentUserId = null) {
+    let query = supabase.from('clips').select('*').eq('creator_id', userId);
+    
+    if (userId !== currentUserId) {
+      query = query.in('privacy', ['public', 'unlisted']);
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async getPostsByUser(userId, currentUserId = null) {
+    let query = supabase.from('posts').select('*').eq('creator_id', userId);
+    
+    if (userId !== currentUserId) {
+      query = query.in('privacy', ['public', 'unlisted']);
+    }
+    
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
   }
 };

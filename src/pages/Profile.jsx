@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { auth } from '@/api/sdk';
-import { User, Video, Clip, Post, Follow } from '@/api/entities';
+import { User, Follow } from '@/api/entities';
+import { videoService } from '../services/videoService';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import VideoCard from '../components/feed/VideoCard';
 import ClipCard from '../components/feed/ClipCard';
@@ -63,20 +64,20 @@ export default function Profile() {
   });
 
   const { data: videos = [] } = useQuery({
-    queryKey: ['profile-videos', profileId],
-    queryFn: () => profileId ? Video.filter({ creator_id: profileId, privacy: 'public' }, '-created_at') : [],
+    queryKey: ['profile-videos', profileId, currentUser?.id],
+    queryFn: () => profileId ? videoService.getVideosByUser(profileId, currentUser?.id) : [],
     enabled: !!profileId,
   });
 
   const { data: clips = [] } = useQuery({
-    queryKey: ['profile-clips', profileId],
-    queryFn: () => profileId ? Clip.filter({ creator_id: profileId }, '-created_at') : [],
+    queryKey: ['profile-clips', profileId, currentUser?.id],
+    queryFn: () => profileId ? videoService.getClipsByUser(profileId, currentUser?.id) : [],
     enabled: !!profileId,
   });
 
   const { data: posts = [] } = useQuery({
-    queryKey: ['profile-posts', profileId],
-    queryFn: () => profileId ? Post.filter({ creator_id: profileId, privacy: 'public' }, '-created_at') : [],
+    queryKey: ['profile-posts', profileId, currentUser?.id],
+    queryFn: () => profileId ? videoService.getPostsByUser(profileId, currentUser?.id) : [],
     enabled: !!profileId,
   });
 

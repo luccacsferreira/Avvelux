@@ -115,9 +115,9 @@ export default function Home() {
         
         if (pError) throw pError;
 
-        setVideos(v.length > 0 ? v : sampleVideos);
-        setClips(c.length > 0 ? c : sampleClips);
-        setPosts(p.length > 0 ? p : samplePosts);
+        setVideos(v.length > 0 ? [...v, ...sampleVideos.filter(sv => !v.some(rv => rv.id === sv.id))] : sampleVideos);
+        setClips(c.length > 0 ? [...c, ...sampleClips.filter(sc => !c.some(rc => rc.id === sc.id))] : sampleClips);
+        setPosts(p.length > 0 ? [...p, ...samplePosts.filter(sp => !p.some(rp => rp.id === sp.id))] : samplePosts);
       } catch (error) {
         console.error('Error fetching home data:', error);
       } finally {
@@ -170,12 +170,10 @@ export default function Home() {
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300 ${
+              className={`flex-shrink-0 px-4 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 activeCategory === cat
-                  ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white shadow-lg scale-105' 
-                  : isLight 
-                    ? 'bg-gray-100 text-gray-700 hover:bg-gray-200' 
-                    : 'bg-[#2a2a2a] text-gray-400 hover:bg-[#333]'
+                  ? isLight ? 'bg-gray-700 text-white' : 'bg-white text-black'
+                  : isLight ? 'bg-gray-200 text-black hover:bg-gray-300' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'
               }`}
             >
               {cat}

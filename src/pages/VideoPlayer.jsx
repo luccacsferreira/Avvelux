@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Video, Comment, Note } from '@/api/entities';
+import { Comment, Note } from '@/api/entities';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
@@ -297,11 +297,11 @@ export default function VideoPlayer() {
   };
 
   return (
-    <div className="flex gap-0">
+    <div className="flex flex-col lg:flex-row gap-0">
       {/* Main Video Area */}
-      <div className="flex-1 pr-3">
+      <div className="flex-1 lg:pr-3">
         {/* Video Player */}
-        <div className="relative aspect-video bg-black rounded-xl overflow-hidden mb-4 group">
+        <div className="relative aspect-video bg-black md:rounded-xl overflow-hidden mb-4 group">
           {showAd && currentAd ? (
             <VideoAd ad={currentAd} onComplete={onAdComplete} />
           ) : (
@@ -368,127 +368,138 @@ export default function VideoPlayer() {
         </div>
 
         {/* Video Info */}
-        <h1 className={`text-xl font-semibold mb-3 ${isLight ? 'text-black' : 'text-white'}`}>{video.title}</h1>
-        
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Link 
-              to={createPageUrl(`Profile?id=${video.creator_id}`)}
-              className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center text-white font-medium hover:opacity-80"
-            >
-              {video.creator_name?.[0]}
-            </Link>
-            <div>
-              <Link 
-                to={createPageUrl(`Profile?id=${video.creator_id}`)}
-                className={`font-medium hover:underline ${isLight ? 'text-black' : 'text-white'}`}
-              >
-                {video.creator_name}
-              </Link>
-              <p className={`text-sm ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>120K subscribers</p>
-            </div>
-            <Button 
-              onClick={() => requireAuth(() => setSubscribed(!subscribed))}
-              className={`transition-colors ${
-                subscribed
-                  ? isLight ? 'bg-transparent border border-gray-400 text-gray-700' : 'bg-transparent border border-gray-600 text-gray-300'
-                  : 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white hover:from-purple-700 hover:to-cyan-700 border-0'
-              }`}
-            >
-              {subscribed ? 'Subscribed' : 'Subscribe'}
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button 
-              onClick={() => requireAuth(() => setLiked(!liked))}
-              className={liked
-                ? 'bg-red-500/10 border border-red-500 text-red-500'
-                : isLight ? 'bg-gray-100 border border-gray-200 text-black hover:bg-gray-200' : 'bg-[#333] border-[#333] text-gray-200 hover:bg-[#3a3a3a]'
-              }
-            >
-              <Heart className={`w-4 h-4 mr-2 ${liked ? 'fill-current' : ''}`} />
-              {formatCount((video.likes_count || 0) + (liked ? 1 : 0))}
-            </Button>
-            <Button className={isLight ? 'bg-gray-100 border border-gray-200 text-black hover:bg-gray-200' : 'bg-[#333] border-[#333] text-gray-200 hover:bg-[#3a3a3a]'}>
-              <Share2 className="w-4 h-4 mr-2" />
-              Share
-            </Button>
-            <Button 
-              onClick={() => requireAuth(() => setSaved(!saved))}
-              className={saved
-                ? 'bg-purple-500/10 border border-purple-500 text-purple-400'
-                : isLight ? 'bg-gray-100 border border-gray-200 text-black hover:bg-gray-200' : 'bg-[#333] border-[#333] text-gray-200 hover:bg-[#3a3a3a]'
-              }
-            >
-              <Bookmark className={`w-4 h-4 mr-2 ${saved ? 'fill-current' : ''}`} />
-              Save
-            </Button>
-          </div>
-        </div>
-
-        {/* Video Description */}
-        <div className={`rounded-xl p-4 mb-6 ${isLight ? 'bg-gray-100' : 'bg-[#2a2a2a]'}`}>
-          <p className={`text-sm mb-2 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
-            {formatCount(video.views)} views • 7 days ago
-          </p>
-          <p className={isLight ? 'text-black' : 'text-white'}>{video.description}</p>
-        </div>
-
-        {/* Comments */}
-        <div>
-          <h2 className={`font-medium mb-4 ${isLight ? 'text-black' : 'text-white'}`}>{comments.length} Comments</h2>
+        <div className="px-4 md:px-0">
+          <h1 className={`text-lg md:text-xl font-semibold mb-2 ${isLight ? 'text-black' : 'text-white'}`}>{video.title}</h1>
           
-          {/* Add Comment */}
-          <div className="flex gap-3 mb-6">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex-shrink-0 flex items-center justify-center text-white font-medium">
-              {user?.display_name?.[0]?.toUpperCase() || 'U'}
-            </div>
-            <div className="flex-1">
-              <Input
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && requireAuth(handleAddComment)}
-                onClick={() => !user && requireAuth(() => {})}
-                placeholder="Add a comment..."
-                className={`bg-transparent border-0 border-b rounded-none placeholder:text-gray-500 focus-visible:ring-0 focus-visible:border-purple-500 ${
-                  isLight ? 'border-gray-300 text-black' : 'border-gray-700 text-white'
-                }`}
-              />
-            </div>
-          </div>
-
-          {/* Comments List */}
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <div key={comment.id} className="flex gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex-shrink-0 flex items-center justify-center text-white font-medium">
-                  {comment.author_name?.[0]?.toUpperCase() || 'U'}
-                </div>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center justify-between md:justify-start gap-3">
+              <div className="flex items-center gap-3">
+                <Link 
+                  to={createPageUrl(`Profile?id=${video.creator_id}`)}
+                  className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center text-white font-medium hover:opacity-80"
+                >
+                  {video.creator_name?.[0]}
+                </Link>
                 <div>
-                  <p className={`text-sm ${isLight ? 'text-black' : 'text-white'}`}>
-                    <span className="font-medium">{comment.author_name}</span>
-                    <span className="text-gray-500 ml-2">1 hour ago</span>
-                  </p>
-                  <p className={`text-sm mt-1 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>{comment.body}</p>
+                  <Link 
+                    to={createPageUrl(`Profile?id=${video.creator_id}`)}
+                    className={`font-medium text-sm md:text-base hover:underline ${isLight ? 'text-black' : 'text-white'}`}
+                  >
+                    {video.creator_name}
+                  </Link>
+                  <p className={`text-xs md:text-sm ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>120K subscribers</p>
                 </div>
               </div>
-            ))}
+              <Button 
+                onClick={() => requireAuth(() => setSubscribed(!subscribed))}
+                className={`transition-colors h-8 md:h-10 px-4 md:px-6 rounded-full text-xs md:text-sm ${
+                  subscribed
+                    ? isLight ? 'bg-gray-100 text-gray-700' : 'bg-white/10 text-gray-300'
+                    : 'bg-white text-black hover:bg-gray-200 border-0'
+                }`}
+              >
+                {subscribed ? 'Subscribed' : 'Subscribe'}
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+              <Button 
+                onClick={() => requireAuth(() => setLiked(!liked))}
+                className={`rounded-full h-8 md:h-10 px-4 text-xs md:text-sm ${liked
+                  ? 'bg-red-500/10 border border-red-500 text-red-500'
+                  : isLight ? 'bg-gray-100 border-none text-black hover:bg-gray-200' : 'bg-white/10 border-none text-gray-200 hover:bg-white/20'
+                }`}
+              >
+                <Heart className={`w-4 h-4 mr-2 ${liked ? 'fill-current' : ''}`} />
+                {formatCount((video.likes_count || 0) + (liked ? 1 : 0))}
+              </Button>
+              <Button className={`rounded-full h-8 md:h-10 px-4 text-xs md:text-sm ${isLight ? 'bg-gray-100 border-none text-black hover:bg-gray-200' : 'bg-white/10 border-none text-gray-200 hover:bg-white/20'}`}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Share
+              </Button>
+              <Button 
+                onClick={() => requireAuth(() => setSaved(!saved))}
+                className={`rounded-full h-8 md:h-10 px-4 text-xs md:text-sm ${saved
+                  ? 'bg-purple-500/10 border border-purple-500 text-purple-400'
+                  : isLight ? 'bg-gray-100 border-none text-black hover:bg-gray-200' : 'bg-white/10 border-none text-gray-200 hover:bg-white/20'
+                }`}
+              >
+                <Bookmark className={`w-4 h-4 mr-2 ${saved ? 'fill-current' : ''}`} />
+                Save
+              </Button>
+            </div>
+          </div>
+
+          {/* Video Description */}
+          <div className={`rounded-xl p-3 md:p-4 mb-6 ${isLight ? 'bg-gray-100' : 'bg-white/5'}`}>
+            <p className={`text-xs md:text-sm mb-1 font-semibold ${isLight ? 'text-black' : 'text-white'}`}>
+              {formatCount(video.views)} views • 7 days ago
+            </p>
+            <p className={`text-xs md:text-sm ${isLight ? 'text-gray-800' : 'text-gray-200'} line-clamp-3 md:line-clamp-none`}>
+              {video.description}
+            </p>
+          </div>
+
+          {/* Comments - Mobile: Collapsible or Preview */}
+          <div className="mb-8">
+            <h2 className={`font-medium mb-4 flex items-center gap-2 ${isLight ? 'text-black' : 'text-white'}`}>
+              Comments <span className="text-gray-500 text-sm font-normal">{comments.length}</span>
+            </h2>
+            
+            {/* Add Comment */}
+            <div className="flex gap-3 mb-6">
+              <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex-shrink-0 flex items-center justify-center text-white font-medium text-xs md:text-sm">
+                {user?.display_name?.[0]?.toUpperCase() || 'U'}
+              </div>
+              <div className="flex-1">
+                <Input
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && requireAuth(handleAddComment)}
+                  onClick={() => !user && requireAuth(() => {})}
+                  placeholder="Add a comment..."
+                  className={`bg-transparent border-0 border-b rounded-none placeholder:text-gray-500 focus-visible:ring-0 focus-visible:border-purple-500 text-sm ${
+                    isLight ? 'border-gray-300 text-black' : 'border-gray-700 text-white'
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Comments List */}
+            <div className="space-y-4">
+              {comments.slice(0, 5).map((comment) => (
+                <div key={comment.id} className="flex gap-3">
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex-shrink-0 flex items-center justify-center text-white font-medium text-xs md:text-sm">
+                    {comment.author_name?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                  <div>
+                    <p className={`text-xs md:text-sm ${isLight ? 'text-black' : 'text-white'}`}>
+                      <span className="font-medium">{comment.author_name}</span>
+                      <span className="text-gray-500 ml-2">1h ago</span>
+                    </p>
+                    <p className={`text-xs md:text-sm mt-1 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>{comment.body}</p>
+                  </div>
+                </div>
+              ))}
+              {comments.length > 5 && (
+                <button className="text-purple-400 text-sm font-medium mt-2">Show more comments</button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Drag Handle */}
+      {/* Drag Handle - Desktop Only */}
       <div
         onMouseDown={handleDragStart}
-        className="w-3 flex items-start justify-center pt-8 cursor-col-resize group flex-shrink-0"
+        className="hidden lg:flex w-3 items-start justify-center pt-8 cursor-col-resize group flex-shrink-0"
         title="Drag to resize"
       >
         <div className="w-0.5 h-16 rounded-full bg-gray-700 group-hover:bg-purple-500 transition-colors mt-4" />
       </div>
 
-      {/* Right Sidebar */}
-      <div className="flex flex-col flex-shrink-0" style={{ width: sidebarWidth }}>
+      {/* Right Sidebar - Responsive */}
+      <div className="flex flex-col flex-shrink-0 px-4 md:px-0" style={{ width: window.innerWidth < 1024 ? '100%' : sidebarWidth }}>
         {/* AI Assistant / Notes Tabs */}
         <Tabs value={rightTab} onValueChange={setRightTab} className="mb-4">
           <TabsList className={`bg-transparent border-b w-full justify-start rounded-none h-auto p-0 ${isLight ? 'border-gray-200' : 'border-gray-800'}`}>

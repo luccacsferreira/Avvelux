@@ -31,12 +31,14 @@ const AuthenticatedApp = () => {
   useEffect(() => {
     const favicon = document.querySelector('link[rel="icon"]');
     if (favicon) {
-      favicon.href = theme === 'dark' ? 'logo-dark.png' : 'logo-light.png';
+      favicon.href = `${import.meta.env.BASE_URL}logo-avvelux.png`;
     }
-  }, [theme]);
+  }, []);
 
   if (isLoadingAuth) {
-    const videoSrc = theme === 'dark' ? 'Intro-dark.mp4' : 'Intro-light.mp4';
+    const videoSrc = theme === 'dark' 
+      ? `${import.meta.env.BASE_URL}Intro-dark.mp4` 
+      : `${import.meta.env.BASE_URL}Intro-light.mp4`;
     const bgColor = theme === 'dark' ? 'bg-[#0a0a0a]' : 'bg-white';
     
     return (

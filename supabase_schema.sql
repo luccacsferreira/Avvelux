@@ -40,8 +40,11 @@ create table if not exists public.clips (
   creator_name text,
   creator_avatar text,
   title text not null,
+  description text,
   video_url text not null,
   thumbnail_url text,
+  category text,
+  subcategory text,
   privacy text default 'public',
   views integer default 0,
   likes_count integer default 0,
@@ -100,6 +103,15 @@ begin
   end if;
   if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='privacy') then
     alter table public.clips add column privacy text default 'public';
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='description') then
+    alter table public.clips add column description text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='category') then
+    alter table public.clips add column category text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='subcategory') then
+    alter table public.clips add column subcategory text;
   end if;
 
   -- Posts
@@ -288,7 +300,7 @@ drop policy if exists "Public read videos" on public.videos;
 create policy "Public read videos" on public.videos for select using (privacy in ('public', 'unlisted') or auth.uid() = creator_id);
 
 drop policy if exists "Public read clips" on public.clips;
-create policy "Public read clips" on public.clips for select using (true);
+create policy "Public read clips" on public.clips for select using (privacy in ('public', 'unlisted') or auth.uid() = creator_id);
 
 drop policy if exists "Public read posts" on public.posts;
 create policy "Public read posts" on public.posts for select using (privacy in ('public', 'unlisted') or auth.uid() = creator_id);
@@ -446,12 +458,25 @@ alter table public.forum_posts enable row level security;
 alter table public.wishlists enable row level security;
 
 -- Basic RLS Policies for new tables
+drop policy if exists "Users can manage own DMs" on public.direct_messages;
 create policy "Users can manage own DMs" on public.direct_messages for all using (auth.uid() in (sender_id, receiver_id));
+
+drop policy if exists "Users can manage own AI chats" on public.ai_chats;
 create policy "Users can manage own AI chats" on public.ai_chats for all using (auth.uid() = user_id);
+
+drop policy if exists "Users can manage own chat messages" on public.chat_messages;
 create policy "Users can manage own chat messages" on public.chat_messages for all using (exists (select 1 from public.ai_chats where id = chat_id and user_id = auth.uid()));
+
+drop policy if exists "Public read video summaries" on public.video_summaries;
 create policy "Public read video summaries" on public.video_summaries for select using (true);
+
+drop policy if exists "Public read groups" on public.groups;
 create policy "Public read groups" on public.groups for select using (true);
+
+drop policy if exists "Public read forum posts" on public.forum_posts;
 create policy "Public read forum posts" on public.forum_posts for select using (true);
+
+drop policy if exists "Users can manage own wishlists" on public.wishlists;
 create policy "Users can manage own wishlists" on public.wishlists for all using (auth.uid() = user_id);
 
 -- ==========================================

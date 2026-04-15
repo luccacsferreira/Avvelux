@@ -20,8 +20,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const LOGO_DARK = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6984d4f6d54057de7ab5c393/929e340e8_avvelux_square_exact.png";
-const LOGO_LIGHT = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6984d4f6d54057de7ab5c393/dfafbe62b_avvelux_gradient_rounded_more.png";
+const LOGO_DARK = `${import.meta.env.BASE_URL}logo-avvelux.png`;
+const LOGO_LIGHT = `${import.meta.env.BASE_URL}logo-avvelux.png`;
 
 export default function Layout({ children, currentPageName }) {
   const { user, signOut, requireAuth } = useAuth();
@@ -115,7 +115,7 @@ export default function Layout({ children, currentPageName }) {
   };
 
   const isClipsPage = currentPageName === 'Clips';
-  const isMobileClips = isClipsPage;
+  const isMobileClips = false; // Show header even on clips page
 
   return (
     <div className={`min-h-screen ${bgColor} ${textColor} flex transition-colors duration-200`}>
@@ -125,8 +125,8 @@ export default function Layout({ children, currentPageName }) {
         * { transition: background-color 0.15s ease, border-color 0.15s ease; }
       `}</style>
 
-      {/* Top Bar - hidden on clips page entirely */}
-      <header className={`fixed top-0 left-0 right-0 h-14 ${bgColor} border-b ${borderColor} flex items-center justify-between px-4 z-50 ${isMobileClips ? 'hidden' : ''}`}>
+      {/* Top Bar */}
+      <header className={`fixed top-0 left-0 right-0 h-14 ${bgColor} border-b ${borderColor} flex items-center justify-between px-4 z-50`}>
         {/* Logo in Top Bar - hidden on mobile */}
         <div className="hidden md:flex items-center gap-2 mr-4 w-56">
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className={`p-1 ${hoverBg} rounded`}>
@@ -238,8 +238,8 @@ export default function Layout({ children, currentPageName }) {
       </header>
 
 
-      {/* Sidebar - hidden on clips page so clips can use full width */}
-      <aside className={`w-56 ${bgColor} border-r ${borderColor} flex flex-col h-screen sticky top-0 pt-14 hidden md:flex ${isClipsPage ? 'md:hidden' : ''}`}>
+      {/* Sidebar */}
+      <aside className={`w-56 ${bgColor} border-r ${borderColor} flex flex-col h-screen sticky top-0 pt-14 hidden md:flex`}>
         <nav className="p-2 space-y-0.5 overflow-y-auto flex-1">
           {navItems.map((item) => (
             <NavLink key={item.page} {...item} />

@@ -167,13 +167,14 @@ export default function Upload() {
           views: 0,
           likes_count: 0,
         };
+        console.log(`Publishing ${activeTab}:`, data);
         if (activeTab === 'Video') {
           await videoService.uploadVideo(data);
         } else {
           await videoService.uploadClip(data);
         }
       } else if (activeTab === 'Posts') {
-        await Post.create({
+        const postData = {
           ...baseData,
           title: formData.title,
           content: postType !== 'poll' ? formData.content : '',
@@ -182,7 +183,9 @@ export default function Upload() {
           poll_options: postType === 'poll' ? pollOptions.filter(o => o.trim()).map(text => ({ text, votes: 0 })) : [],
           likes_count: 0,
           comments_count: 0,
-        });
+        };
+        console.log('Publishing Post:', postData);
+        await Post.create(postData);
       }
 
       setIsUploading(false);
