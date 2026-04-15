@@ -373,6 +373,87 @@ create policy "Users can manage own comments" on public.comments for all using (
 drop policy if exists "Users can manage own follows" on public.follows;
 create policy "Users can manage own follows" on public.follows for all using (auth.uid() = follower_id);
 
+-- Direct Messages
+create table if not exists public.direct_messages (
+  id uuid primary key default gen_random_uuid (),
+  sender_id uuid not null references auth.users (id) on delete cascade,
+  receiver_id uuid not null references auth.users (id) on delete cascade,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
+-- AI Chats
+create table if not exists public.ai_chats (
+  id uuid primary key default gen_random_uuid (),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  title text,
+  created_at timestamptz not null default now()
+);
+
+-- AI Chat Messages
+create table if not exists public.chat_messages (
+  id uuid primary key default gen_random_uuid (),
+  chat_id uuid not null references public.ai_chats (id) on delete cascade,
+  role text not null, -- 'user' or 'assistant'
+  content text not null,
+  created_at timestamptz not null default now()
+);
+
+-- Video Summaries
+create table if not exists public.video_summaries (
+  id uuid primary key default gen_random_uuid (),
+  video_id uuid not null references public.videos (id) on delete cascade,
+  summary text not null,
+  created_at timestamptz not null default now()
+);
+
+-- Groups/Communities (Already have communities, but entities.js uses groups)
+create table if not exists public.groups (
+  id uuid primary key default gen_random_uuid (),
+  creator_id uuid not null references auth.users (id) on delete cascade,
+  name text not null unique,
+  description text,
+  avatar_url text,
+  created_at timestamptz not null default now()
+);
+
+-- Forum Posts
+create table if not exists public.forum_posts (
+  id uuid primary key default gen_random_uuid (),
+  group_id uuid not null references public.groups (id) on delete cascade,
+  creator_id uuid not null references auth.users (id) on delete cascade,
+  title text not null,
+  content text not null,
+  created_at timestamptz not null default now()
+);
+
+-- Wishlists
+create table if not exists public.wishlists (
+  id uuid primary key default gen_random_uuid (),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  product_name text not null,
+  product_url text,
+  created_at timestamptz not null default now()
+);
+
+-- Enable RLS on new tables
+alter table public.direct_messages enable row level security;
+alter table public.ai_chats enable row level security;
+alter table public.chat_messages enable row level security;
+alter table public.video_summaries enable row level security;
+alter table public.groups enable row level security;
+alter table public.forum_posts enable row level security;
+alter table public.wishlists enable row level security;
+
+-- Basic RLS Policies for new tables
+create policy "Users can manage own DMs" on public.direct_messages for all using (auth.uid() in (sender_id, receiver_id));
+create policy "Users can manage own AI chats" on public.ai_chats for all using (auth.uid() = user_id);
+create policy "Users can manage own chat messages" on public.chat_messages for all using (exists (select 1 from public.ai_chats where id = chat_id and user_id = auth.uid()));
+create policy "Public read video summaries" on public.video_summaries for select using (true);
+create policy "Public read groups" on public.groups for select using (true);
+create policy "Public read forum posts" on public.forum_posts for select using (true);
+create policy "Users can manage own wishlists" on public.wishlists for all using (auth.uid() = user_id);
+
 -- ==========================================
 -- 5. STORAGE BUCKETS SETUP
 -- ==========================================
