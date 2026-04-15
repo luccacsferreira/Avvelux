@@ -51,19 +51,19 @@ export default function Analytics() {
 
   const { data: videos = [] } = useQuery({
     queryKey: ['analytics-videos', user?.id],
-    queryFn: () => user ? Video.filter({ creator_id: user.id }, '-created_date') : [],
+    queryFn: () => user ? Video.filter({ creator_id: user.id }, '-created_at') : [],
     enabled: !!user,
   });
 
   const { data: clips = [] } = useQuery({
     queryKey: ['analytics-clips', user?.id],
-    queryFn: () => user ? Clip.filter({ creator_id: user.id }, '-created_date') : [],
+    queryFn: () => user ? Clip.filter({ creator_id: user.id }, '-created_at') : [],
     enabled: !!user,
   });
 
   const { data: posts = [] } = useQuery({
     queryKey: ['analytics-posts', user?.id],
-    queryFn: () => user ? Post.filter({ creator_id: user.id }, '-created_date') : [],
+    queryFn: () => user ? Post.filter({ creator_id: user.id }, '-created_at') : [],
     enabled: !!user,
   });
 

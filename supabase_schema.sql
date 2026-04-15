@@ -69,23 +69,42 @@ create table if not exists public.posts (
 -- Ensure columns exist if tables were already created
 do $$ 
 begin
+  -- Profiles
+  if not exists (select 1 from information_schema.columns where table_name='profiles' and column_name='username') then
+    alter table public.profiles add column username text unique;
+  end if;
+
+  -- Videos
   if not exists (select 1 from information_schema.columns where table_name='videos' and column_name='creator_name') then
     alter table public.videos add column creator_name text;
   end if;
   if not exists (select 1 from information_schema.columns where table_name='videos' and column_name='creator_avatar') then
     alter table public.videos add column creator_avatar text;
   end if;
+  if not exists (select 1 from information_schema.columns where table_name='videos' and column_name='likes_count') then
+    alter table public.videos add column likes_count integer default 0;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='videos' and column_name='privacy') then
+    alter table public.videos add column privacy text default 'public';
+  end if;
+
+  -- Clips
   if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='creator_name') then
     alter table public.clips add column creator_name text;
   end if;
   if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='creator_avatar') then
     alter table public.clips add column creator_avatar text;
   end if;
-  if not exists (select 1 from information_schema.columns where table_name='videos' and column_name='likes_count') then
-    alter table public.videos add column likes_count integer default 0;
-  end if;
   if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='likes_count') then
     alter table public.clips add column likes_count integer default 0;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='privacy') then
+    alter table public.clips add column privacy text default 'public';
+  end if;
+
+  -- Posts
+  if not exists (select 1 from information_schema.columns where table_name='posts' and column_name='privacy') then
+    alter table public.posts add column privacy text default 'public';
   end if;
 end $$;
 

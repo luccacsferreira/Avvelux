@@ -72,7 +72,7 @@ export default function Account() {
     queryKey: ['my-stories', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const userStories = await Story.filter({ user_id: user.id });
+      const userStories = await Story.filter({ creator_id: user.id });
       const now = new Date();
       const activeStories = userStories.filter(s => new Date(s.expires_at) > now);
       setHasStory(activeStories.length > 0);
