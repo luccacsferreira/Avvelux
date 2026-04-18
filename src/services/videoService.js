@@ -32,13 +32,27 @@ export const videoService = {
   async uploadVideo(videoData) {
     try {
       console.log('Inserting video metadata:', videoData);
+      // Ensure we only send fields that exist in the database to avoid errors
+      const insertData = {
+        creator_id: videoData.creator_id,
+        creator_name: videoData.creator_name,
+        creator_avatar: videoData.creator_avatar,
+        title: videoData.title,
+        description: videoData.description,
+        video_url: videoData.video_url,
+        thumbnail_url: videoData.thumbnail_url,
+        category: videoData.category,
+        subcategory: videoData.subcategory,
+        privacy: videoData.privacy || 'public',
+        views: videoData.views || 0,
+        likes_count: videoData.likes_count || 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
       const { data, error } = await supabase
         .from('videos')
-        .insert([{
-          ...videoData,
-          likes_count: videoData.likes || 0,
-          created_at: new Date().toISOString(),
-        }])
+        .insert([insertData])
         .select()
         .single();
 
@@ -58,13 +72,25 @@ export const videoService = {
   async uploadClip(clipData) {
     try {
       console.log('Inserting clip metadata:', clipData);
+      const insertData = {
+        creator_id: clipData.creator_id,
+        creator_name: clipData.creator_name,
+        creator_avatar: clipData.creator_avatar,
+        title: clipData.title,
+        description: clipData.description,
+        video_url: clipData.video_url,
+        thumbnail_url: clipData.thumbnail_url,
+        category: clipData.category,
+        subcategory: clipData.subcategory,
+        privacy: clipData.privacy || 'public',
+        views: clipData.views || 0,
+        likes_count: clipData.likes_count || 0,
+        created_at: new Date().toISOString()
+      };
+
       const { data, error } = await supabase
         .from('clips')
-        .insert([{
-          ...clipData,
-          likes_count: clipData.likes || 0,
-          created_at: new Date().toISOString(),
-        }])
+        .insert([insertData])
         .select()
         .single();
 
@@ -81,21 +107,23 @@ export const videoService = {
     }
   },
 
-  async getVideos(category = 'All', limitCount = 20) {
+  async getVideos(category = 'All', limitCount = 50) {
     try {
       let query = supabase
         .from('videos')
         .select('*')
         .eq('privacy', 'public') // Only show public videos in general feeds
-        .order('created_at', { ascending: false })
-        .limit(limitCount);
+        .order('created_at', { ascending: false });
 
-      if (category !== 'All') {
+      if (category && category !== 'All') {
+        // Use ilike for partial matches to handle subcategories or minor name differences
         query = query.ilike('category', `%${category}%`);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query.limit(limitCount);
       if (error) throw error;
+      
+      console.log(`Fetched ${data?.length || 0} real videos from Supabase for category: ${category}`);
       return data || [];
     } catch (error) {
       console.error('Error getting videos:', error);
@@ -124,15 +152,20 @@ export const videoService = {
       const { data, error } = await supabase
         .from('clips')
         .select('*')
+        .eq('privacy', 'public') // Only show public clips in discovery feeds
         .order('created_at', { ascending: false })
         .limit(limitCount);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase Query Error (clips):', error);
+        throw error;
+      }
+      
+      console.log(`Fetched ${data?.length || 0} real clips from Supabase`);
       return data || [];
     } catch (error) {
       console.error('Error getting clips:', error);
       if (error.details) console.error('Error details:', error.details);
-      if (error.hint) console.error('Error hint:', error.hint);
       return [];
     }
   },

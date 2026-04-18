@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { useAuth } from '@/lib/AuthContext';
+import { videoService } from '../services/videoService';
+import { supabase } from '@/lib/supabase';
 import { Video, Clip, Post, Story, Follow } from '@/api/entities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import VideoCard from '../components/feed/VideoCard';
@@ -50,19 +52,19 @@ export default function Account() {
 
   const { data: videos = [] } = useQuery({
     queryKey: ['my-videos', user?.id],
-    queryFn: () => user ? Video.filter({ creator_id: user.id }, '-created_at') : [],
+    queryFn: () => user ? videoService.getVideosByUser(user.id, user.id) : [],
     enabled: !!user,
   });
 
   const { data: clips = [] } = useQuery({
     queryKey: ['my-clips', user?.id],
-    queryFn: () => user ? Clip.filter({ creator_id: user.id }, '-created_at') : [],
+    queryFn: () => user ? videoService.getClipsByUser(user.id, user.id) : [],
     enabled: !!user,
   });
 
   const { data: posts = [] } = useQuery({
     queryKey: ['my-posts', user?.id],
-    queryFn: () => user ? Post.filter({ creator_id: user.id }, '-created_at') : [],
+    queryFn: () => user ? videoService.getPostsByUser(user.id, user.id) : [],
     enabled: !!user,
   });
 

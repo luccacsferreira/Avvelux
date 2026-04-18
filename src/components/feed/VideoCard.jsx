@@ -21,6 +21,7 @@ export default function VideoCard({ video, size = 'normal' }) {
         <img 
           src={video.thumbnail_url || 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400'} 
           alt={video.title}
+          referrerPolicy="no-referrer"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute bottom-2 right-2 flex items-center gap-1">

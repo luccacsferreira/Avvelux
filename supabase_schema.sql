@@ -118,6 +118,11 @@ begin
   if not exists (select 1 from information_schema.columns where table_name='posts' and column_name='privacy') then
     alter table public.posts add column privacy text default 'public';
   end if;
+
+  -- Update any existing NULL privacy values to 'public' so they appear in feeds
+  update public.videos set privacy = 'public' where privacy is null;
+  update public.clips set privacy = 'public' where privacy is null;
+  update public.posts set privacy = 'public' where privacy is null;
 end $$;
 
 -- Ads (Publicly viewable)

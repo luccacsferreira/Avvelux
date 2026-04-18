@@ -50,7 +50,7 @@ export default function PostCard({ post }) {
       {/* Image if exists */}
       {post.image_url && (
         <div className="rounded-lg overflow-hidden mb-3">
-          <img src={post.image_url} alt="" className="w-full object-cover" />
+          <img src={post.image_url} alt="" referrerPolicy="no-referrer" className="w-full object-cover" />
         </div>
       )}
 

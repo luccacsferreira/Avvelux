@@ -111,13 +111,16 @@ export default function Home() {
           .select('*')
           .eq('privacy', 'public') // Only show public posts in general feeds
           .order('created_at', { ascending: false })
-          .limit(10);
+          .limit(20);
         
         if (pError) throw pError;
 
-        setVideos(v.length > 0 ? [...v, ...sampleVideos.filter(sv => !v.some(rv => rv.id === sv.id))] : sampleVideos);
-        setClips(c.length > 0 ? [...c, ...sampleClips.filter(sc => !c.some(rc => rc.id === sc.id))] : sampleClips);
-        setPosts(p.length > 0 ? [...p, ...samplePosts.filter(sp => !p.some(rp => rp.id === sp.id))] : samplePosts);
+        console.log('Home Feed Data:', { videos: v?.length, clips: c?.length, posts: p?.length });
+
+        // Merge real data with samples, prioritize real data
+        setVideos(v && v.length > 0 ? [...v, ...sampleVideos.filter(sv => !v.some(rv => rv.id === sv.id))] : sampleVideos);
+        setClips(c && c.length > 0 ? [...c, ...sampleClips.filter(sc => !c.some(rc => rc.id === sc.id))] : sampleClips);
+        setPosts(p && p.length > 0 ? [...p, ...samplePosts.filter(sp => !p.some(rp => rp.id === sp.id))] : samplePosts);
       } catch (error) {
         console.error('Error fetching home data:', error);
       } finally {
