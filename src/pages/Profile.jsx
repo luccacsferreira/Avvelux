@@ -11,6 +11,7 @@ import { UserPlus, UserCheck } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { useSearchParams } from 'react-router-dom';
 
 export default function Profile() {
   const [profileUser, setProfileUser] = useState(null);
@@ -18,9 +19,9 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState('Video');
   const [theme, setTheme] = useState('system');
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const profileId = urlParams.get('id');
+  const profileId = searchParams.get('id');
 
   useEffect(() => {
     setTheme(localStorage.getItem('avvelux-theme') || 'system');

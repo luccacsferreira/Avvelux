@@ -2,21 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { Heart, MessageCircle, Share2, Bookmark, Volume2, VolumeX, ArrowLeft } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { toast } from 'sonner';
 
 export default function ClipPlayer() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [clip, setClip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [muted, setMuted] = useState(false);
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const clipId = urlParams.get('id');
+  const clipId = searchParams.get('id');
 
   useEffect(() => {
     if (!clipId) {

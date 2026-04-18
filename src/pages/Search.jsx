@@ -42,7 +42,10 @@ function formatFollowers(n) {
   return String(n);
 }
 
+import { useSearchParams } from 'react-router-dom';
+
 export default function Search() {
+  const [searchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [contentType, setContentType] = useState('All');
@@ -60,10 +63,9 @@ export default function Search() {
   const isLight = theme === 'light';
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const q = params.get('q');
+    const q = searchParams.get('q');
     if (q) { setQuery(q); setSearchQuery(q); performSearch(q); }
-  }, []);
+  }, [searchParams]);
 
   const { data: videos = [] } = useQuery({
     queryKey: ['search-videos'],

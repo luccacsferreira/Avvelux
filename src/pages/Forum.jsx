@@ -3,7 +3,7 @@ import { auth } from '@/api/sdk';
 import { Group, ForumPost, Comment } from '@/api/entities';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageSquare, Heart, Plus, ArrowLeft, Pin } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,8 +28,8 @@ function timeAgo(dateStr) {
 export default function Forum() {
   const isLight = useTheme();
   const qc = useQueryClient();
-  const params = new URLSearchParams(window.location.search);
-  const groupId = params.get('groupId');
+  const [searchParams] = useSearchParams();
+  const groupId = searchParams.get('groupId');
 
   const [user, setUser] = useState(null);
   const [group, setGroup] = useState(null);

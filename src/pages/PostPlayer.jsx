@@ -3,7 +3,7 @@ import { auth } from '@/api/sdk';
 import { Post, Comment } from '@/api/entities';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Heart, MessageCircle, Share2, Bookmark, Send } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,9 +16,9 @@ export default function PostPlayer() {
   const [newComment, setNewComment] = useState('');
   const [theme, setTheme] = useState('system');
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const postId = urlParams.get('id');
+  const postId = searchParams.get('id');
 
   useEffect(() => {
     setTheme(localStorage.getItem('avvelux-theme') || 'system');

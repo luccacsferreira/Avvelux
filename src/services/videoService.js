@@ -133,6 +133,7 @@ export const videoService = {
   },
 
   async getVideoById(id) {
+    console.log('Fetching video with ID:', id);
     try {
       const { data, error } = await supabase
         .from('videos')
@@ -140,7 +141,11 @@ export const videoService = {
         .eq('id', id)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error in getVideoById:', error);
+        throw error;
+      }
+      console.log('Successfully fetched video data:', data);
       return data;
     } catch (error) {
       console.error('Error getting video by id:', error);

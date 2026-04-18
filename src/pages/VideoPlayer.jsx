@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Comment, Note } from '@/api/entities';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { useAuth } from '@/lib/AuthContext';
 import { 
@@ -79,15 +79,27 @@ export default function VideoPlayer() {
 
   const isLight = theme === 'light';
   const queryClient = useQueryClient();
-  const urlParams = new URLSearchParams(window.location.search);
-  const videoId = urlParams.get('id') || '1';
+  const [searchParams] = useSearchParams();
+  const videoId = searchParams.get('id') || '1';
 
-  const { data: videoData } = useQuery({
+  const { data: videoData, isLoading: isVideoLoading, error: videoError } = useQuery({
     queryKey: ['video', videoId],
     queryFn: () => videoService.getVideoById(videoId),
+    enabled: !!videoId,
   });
 
-  const video = videoData || { id: '1', title: 'Loading...', description: '', thumbnail_url: '', video_url: '', duration: '0:00', views: 0, likes: 0, creator_name: 'Loading...', creator_avatar: '' };
+  const video = videoData || { 
+    id: videoId || '1', 
+    title: isVideoLoading ? 'Loading Video...' : 'Video Not Found', 
+    description: '', 
+    thumbnail_url: '', 
+    video_url: '', 
+    duration: '0:00', 
+    views: 0, 
+    likes: 0, 
+    creator_name: isVideoLoading ? 'Loading...' : 'Unknown', 
+    creator_avatar: '' 
+  };
 
   useEffect(() => {
     if (videoId && user) {

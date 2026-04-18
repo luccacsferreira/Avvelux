@@ -4,7 +4,7 @@ import { Core } from '@/api/integrations';
 import { useQuery } from '@tanstack/react-query';
 import { Play, Clock, ChevronRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import { createPageUrl } from '../utils';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 function useTheme() {
   const [isLight, setIsLight] = useState(false);
@@ -57,9 +57,9 @@ const SAMPLE_COURSES = [
 
 export default function Courses() {
   const isLight = useTheme();
-  const params = new URLSearchParams(window.location.search);
-  const courseId = params.get('id');
-  const lessonId = params.get('lessonId');
+  const [searchParams] = useSearchParams();
+  const courseId = searchParams.get('id');
+  const lessonId = searchParams.get('lessonId');
 
   const { data: dbCourses = [] } = useQuery({
     queryKey: ['courses'],

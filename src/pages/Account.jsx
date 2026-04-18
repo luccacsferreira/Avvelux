@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { useAuth } from '@/lib/AuthContext';
 import { videoService } from '../services/videoService';
-import { supabase } from '@/lib/supabase';
 import { Video, Clip, Post, Story, Follow } from '@/api/entities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import VideoCard from '../components/feed/VideoCard';
