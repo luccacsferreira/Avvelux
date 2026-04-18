@@ -48,7 +48,8 @@ create table if not exists public.clips (
   privacy text default 'public',
   views integer default 0,
   likes_count integer default 0,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
 
 -- Posts (Publicly viewable)
@@ -91,30 +92,21 @@ begin
     alter table public.videos add column privacy text default 'public';
   end if;
 
-  -- Clips
-  if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='creator_name') then
-    alter table public.clips add column creator_name text;
-  end if;
-  if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='creator_avatar') then
-    alter table public.clips add column creator_avatar text;
-  end if;
-  if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='likes_count') then
-    alter table public.clips add column likes_count integer default 0;
-  end if;
+  -- Fix clips privacy and timestamps
   if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='privacy') then
     alter table public.clips add column privacy text default 'public';
   end if;
-  if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='description') then
-    alter table public.clips add column description text;
-  end if;
-  if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='category') then
-    alter table public.clips add column category text;
-  end if;
-  if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='subcategory') then
-    alter table public.clips add column subcategory text;
+  if not exists (select 1 from information_schema.columns where table_name='clips' and column_name='updated_at') then
+    alter table public.clips add column updated_at timestamptz not null default now();
   end if;
 
-  -- Posts
+  -- Fix posts creator metadata
+  if not exists (select 1 from information_schema.columns where table_name='posts' and column_name='creator_name') then
+    alter table public.posts add column creator_name text;
+  end if;
+  if not exists (select 1 from information_schema.columns where table_name='posts' and column_name='creator_avatar') then
+    alter table public.posts add column creator_avatar text;
+  end if;
   if not exists (select 1 from information_schema.columns where table_name='posts' and column_name='privacy') then
     alter table public.posts add column privacy text default 'public';
   end if;

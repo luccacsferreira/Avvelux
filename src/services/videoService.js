@@ -85,7 +85,8 @@ export const videoService = {
         privacy: clipData.privacy || 'public',
         views: clipData.views || 0,
         likes_count: clipData.likes_count || 0,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
       const { data, error } = await supabase
