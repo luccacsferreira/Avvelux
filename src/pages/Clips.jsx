@@ -24,8 +24,8 @@ function ClipItem({ clip, isActive, isLight }) {
   };
 
   return (
-    <div className={`flex items-center justify-center w-full h-full relative overflow-hidden ${isLight ? 'bg-white' : 'bg-[#0f0f0f]'}`}>
-      <div className="relative h-[94%] aspect-[9/16] bg-black shadow-2xl flex items-center justify-center rounded-3xl overflow-hidden border border-white/5">
+    <div className={`flex items-center justify-center w-full h-full relative overflow-hidden ${isLight ? 'bg-white' : 'bg-[#1a1a1a]'}`}>
+      <div className="relative h-[92%] aspect-[9/16] bg-black shadow-2xl flex items-center justify-center rounded-3xl overflow-hidden border border-white/5">
         <video 
           ref={videoRef} 
           src={clip.video_url} 
@@ -76,11 +76,11 @@ export default function Clips() {
     return () => el.removeEventListener('wheel', onWheel);
   }, [clips.length]);
 
-  if (isLoading) return <div className={`flex items-center justify-center h-screen pt-14 ${isLight ? 'bg-white text-purple-600' : 'bg-[#0f0f0f] text-purple-400'} font-bold`}>Loading...</div>;
-  if (clips.length === 0) return <div className={`flex items-center justify-center h-screen pt-14 ${isLight ? 'bg-white text-gray-500' : 'bg-[#0f0f0f] text-gray-400'} font-bold`}>No clips.</div>;
+  if (isLoading) return <div className={`flex items-center justify-center h-screen pt-14 ${isLight ? 'bg-white text-purple-600' : 'bg-[#1a1a1a] text-purple-400'} font-bold`}>Loading...</div>;
+  if (clips.length === 0) return <div className={`flex items-center justify-center h-screen pt-14 ${isLight ? 'bg-white text-gray-500' : 'bg-[#1a1a1a] text-gray-400'} font-bold`}>No clips.</div>;
 
   return (
-    <div ref={containerRef} className={`h-screen pt-14 overflow-hidden relative ${isLight ? 'bg-white' : 'bg-[#0f0f0f]'}`}>
+    <div ref={containerRef} className={`h-[calc(100vh-56px)] mt-14 overflow-hidden relative ${isLight ? 'bg-white' : 'bg-[#1a1a1a]'}`}>
       {clips.map((item, idx) => (
         <div
           key={item.id}
