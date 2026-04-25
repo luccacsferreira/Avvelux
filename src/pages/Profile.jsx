@@ -73,6 +73,20 @@ export default function Profile() {
     enabled: !!profileId,
   });
 
+  const { data: profileClips = [] } = useQuery({
+    queryKey: ['profile-clips', profileId],
+    queryFn: () => profileId ? Clip.filter({ user_id: profileId }) : [],
+    enabled: !!profileId,
+  });
+
+  const { data: profilePosts = [] } = useQuery({
+    queryKey: ['profile-posts', profileId],
+    queryFn: () => profileId ? Post.filter({ user_id: profileId }) : [],
+    enabled: !!profileId,
+  });
+
+  const totalContent = profileVideos.length + profileClips.length + profilePosts.length;
+
   const { data: followers = [] } = useQuery({
     queryKey: ['profile-followers', profileId],
     queryFn: () => profileId ? Follow.filter({ following_id: profileId }) : [],
@@ -168,17 +182,25 @@ export default function Profile() {
             
             {/* Edit Profile Button - only show if viewing own profile */}
             {currentUser && currentUser.id === profileUser.id && (
-              <Link to="/EditProfile">
-                <Button variant="outline" size="sm" className="h-8 gap-2">
-                  <Edit3 className="w-3.5 h-3.5" />
-                  Edit Profile
-                </Button>
-              </Link>
+              <div className="flex gap-2">
+                <Link to={createPageUrl('EditProfile')}>
+                  <Button variant="outline" size="sm" className="h-8 gap-2">
+                    <Settings className="w-3.5 h-3.5" />
+                    Edit Profile
+                  </Button>
+                </Link>
+                <Link to={createPageUrl('Analytics')}>
+                  <Button variant="outline" size="sm" className="h-8 gap-2">
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    Studio
+                  </Button>
+                </Link>
+              </div>
             )}
           </div>
           
           <p className={`mb-3 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
-            {username} • {followers.length} followers • {profileVideos.length} videos
+            {username} • {followers.length} followers • {totalContent} content posted
           </p>
           
           {profileUser.bio && (

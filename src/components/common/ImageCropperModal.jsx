@@ -118,8 +118,10 @@ const ImageCropperModal = ({ open, onOpenChange, image, onCropComplete }) => {
           <div className="flex gap-3">
             <button
               onClick={() => onOpenChange(false)}
-              className={`flex-1 py-2.5 rounded-xl border transition-colors font-medium ${
-                isLight ? 'border-gray-200 hover:bg-gray-50 text-gray-700' : 'border-gray-800 hover:bg-white/5 text-gray-300'
+              className={`flex-1 py-2.5 rounded-xl transition-all font-bold ${
+                isLight 
+                  ? 'bg-gray-200 hover:bg-gray-300 text-black' 
+                  : 'bg-[#2a2a2a] hover:bg-[#333] text-white'
               }`}
             >
               Cancel

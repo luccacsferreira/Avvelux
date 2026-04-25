@@ -40,6 +40,20 @@ export default function Account() {
     enabled: !!user,
   });
 
+  const { data: myClips = [] } = useQuery({
+    queryKey: ['my-clips', user?.id],
+    queryFn: () => user ? Clip.filter({ user_id: user.id }) : [],
+    enabled: !!user,
+  });
+
+  const { data: myPosts = [] } = useQuery({
+    queryKey: ['my-posts', user?.id],
+    queryFn: () => user ? Post.filter({ user_id: user.id }) : [],
+    enabled: !!user,
+  });
+
+  const totalContent = myVideos.length + myClips.length + myPosts.length;
+
   const { data: followers = [] } = useQuery({
     queryKey: ['followers', user?.id],
     queryFn: () => user ? Follow.filter({ following_id: user.id }) : [],
@@ -156,7 +170,7 @@ export default function Account() {
         <div className="flex-1">
           <h1 className={`text-2xl font-bold mb-1 ${isLight ? 'text-black' : 'text-white'}`}>{nickname}</h1>
           <p className={`mb-3 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
-            {username} • {followers.length} followers • {myVideos.length} videos
+            {username} • {followers.length} followers • {totalContent} content posted
           </p>
           
           {user?.bio && (
@@ -171,16 +185,16 @@ export default function Account() {
                 Customize channel
               </button>
             </Link>
-            <Link to={createPageUrl('Upload')}>
-              <button className={`px-4 py-1.5 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors ${isLight ? 'bg-gray-200 text-black hover:bg-gray-300' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'}`}>
-                <Upload className="w-4 h-4" />
-                Manage videos
-              </button>
-            </Link>
             <Link to={createPageUrl('Analytics')}>
               <button className={`px-4 py-1.5 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors ${isLight ? 'bg-gray-200 text-black hover:bg-gray-300' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'}`}>
                 <BarChart3 className="w-4 h-4" />
-                Analytics
+                Studio
+              </button>
+            </Link>
+            <Link to={createPageUrl('Upload')}>
+              <button className={`px-4 py-1.5 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors ${isLight ? 'bg-gray-200 text-black hover:bg-gray-300' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'}`}>
+                <Upload className="w-4 h-4" />
+                Upload
               </button>
             </Link>
           </div>
@@ -252,7 +266,7 @@ export default function Account() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialog({ open: false, item: null, type: '' })} className={isLight ? 'border-gray-300' : 'border-gray-600'}>
+            <Button onClick={() => setDeleteDialog({ open: false, item: null, type: '' })} className={`border-none ${isLight ? 'bg-gray-200 text-black hover:bg-gray-300' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'}`}>
               Cancel
             </Button>
             <Button onClick={handleDelete} className="bg-red-500 text-white hover:bg-red-600">

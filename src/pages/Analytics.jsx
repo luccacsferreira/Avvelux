@@ -9,7 +9,7 @@ import {
   Heart, Play, BarChart3, Calendar
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -38,6 +38,8 @@ export default function Analytics() {
   }, []);
 
   const isLight = theme === 'light';
+  const borderColor = isLight ? 'border-gray-200' : 'border-gray-800';
+  const textMuted = isLight ? 'text-gray-500' : 'text-gray-400';
 
   useEffect(() => {
     const loadUser = async () => {
@@ -81,26 +83,29 @@ export default function Analytics() {
                      posts.reduce((sum, p) => sum + (p.likes || 0), 0);
   const totalContent = videos.length + clips.length + posts.length;
 
-  // Generate sample growth data for visualization
+  // Generate real growth data based on content creation dates
   const generateGrowthData = () => {
     const days = parseInt(timeRange);
     const data = [];
-    let baseViews = Math.max(100, totalViews - (days * 50));
-    let baseFollowers = Math.max(10, followers.length - (days * 2));
+    const allContent = [...videos, ...clips, ...posts];
     
     for (let i = days; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      const growth = Math.random() * 0.1 + 0.02;
-      baseViews = Math.floor(baseViews * (1 + growth));
-      baseFollowers = Math.floor(baseFollowers * (1 + growth * 0.3));
+      const dateStr = date.toISOString().split('T')[0];
       
+      const contentByDate = allContent.filter(c => c.created_at && c.created_at.split('T')[0] === dateStr);
+      const viewsOnDate = contentByDate.reduce((sum, c) => sum + (c.views || 0), 0);
+      const likesOnDate = contentByDate.reduce((sum, c) => sum + (c.likes || 0), 0);
+      
+      // Since we don't have a history table, we'll just show the metrics for items created on that day
+      // This is at least based on real data even if incomplete for daily snapshots
       data.push({
         date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        views: baseViews,
-        followers: baseFollowers,
-        likes: Math.floor(baseViews * 0.05),
-        comments: Math.floor(baseViews * 0.01),
+        views: viewsOnDate,
+        followers: 0, // No historical follower data
+        likes: likesOnDate,
+        comments: 0,
       });
     }
     return data;
@@ -119,56 +124,56 @@ export default function Analytics() {
             </Button>
           </Link>
           <div>
-            <h1 className={`text-2xl font-bold ${isLight ? 'text-black' : 'text-white'}`}>Creator Analytics</h1>
-            <p className={isLight ? 'text-gray-600' : 'text-gray-400'}>Track your content performance and audience growth</p>
+            <h1 className={`text-2xl font-bold ${isLight ? 'text-black' : 'text-white'}`}>Channel content</h1>
           </div>
         </div>
         
-        <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger className={`w-40 ${isLight ? 'bg-white border-gray-300 text-black' : 'bg-[#2a2a2a] border-gray-700 text-white'}`}>
-            <Calendar className="w-4 h-4 mr-2" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className={isLight ? 'bg-white border-gray-200' : 'bg-[#2a2a2a] border-gray-700'}>
-            <SelectItem value="7" className={isLight ? 'text-black' : 'text-white'}>Last 7 days</SelectItem>
-            <SelectItem value="30" className={isLight ? 'text-black' : 'text-white'}>Last 30 days</SelectItem>
-            <SelectItem value="90" className={isLight ? 'text-black' : 'text-white'}>Last 90 days</SelectItem>
-            <SelectItem value="365" className={isLight ? 'text-black' : 'text-white'}>Last year</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger className={`w-40 ${isLight ? 'bg-white border-gray-300 text-black' : 'bg-[#2a2a2a] border-gray-700 text-white'}`}>
+              <Calendar className="w-4 h-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className={isLight ? 'bg-white border-gray-200' : 'bg-[#2a2a2a] border-gray-700'}>
+              <SelectItem value="7" className={isLight ? 'text-black' : 'text-white'}>Last 7 days</SelectItem>
+              <SelectItem value="30" className={isLight ? 'text-black' : 'text-white'}>Last 30 days</SelectItem>
+              <SelectItem value="90" className={isLight ? 'text-black' : 'text-white'}>Last 90 days</SelectItem>
+              <SelectItem value="365" className={isLight ? 'text-black' : 'text-white'}>Last year</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Overview Cards */}
-      <OverviewCards 
-        isLight={isLight}
-        totalViews={totalViews}
-        totalLikes={totalLikes}
-        totalFollowers={followers.length}
-        totalContent={totalContent}
-        growthData={growthData}
-      />
+      <div className={`flex items-center gap-6 mb-6 overflow-x-auto pb-2 scrollbar-hide border-b ${borderColor}`}>
+        {['Inspiration', 'Videos', 'Shorts', 'Live', 'Posts', 'Playlists', 'Podcasts', 'Promotions', 'Collaborations'].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab.toLowerCase() === 'videos' ? 'content' : tab.toLowerCase())}
+            className={`pb-3 text-sm font-medium transition-colors whitespace-nowrap relative ${
+              (activeTab === 'content' && tab === 'Videos') || activeTab === tab.toLowerCase()
+                ? `text-white after:absolute after:bottom-0 after:left-0 after:right-0 after:h-0.5 after:bg-white`
+                : `${textMuted} hover:text-white`
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* Overview Cards (Only show if on overview or specifically requested, for now we keep them at top or move into a dashboard tab) */}
+      {activeTab === 'overview' && (
+        <OverviewCards 
+          isLight={isLight}
+          totalViews={totalViews}
+          totalLikes={totalLikes}
+          totalFollowers={followers.length}
+          totalContent={totalContent}
+          growthData={growthData}
+        />
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-8">
-        <TabsList className={`${isLight ? 'bg-gray-100' : 'bg-[#2a2a2a]'} p-1`}>
-          <TabsTrigger value="overview" className={`${isLight ? 'data-[state=active]:bg-white data-[state=active]:text-black' : 'data-[state=active]:bg-white data-[state=active]:text-black'}`}>
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="content" className={`${isLight ? 'data-[state=active]:bg-white data-[state=active]:text-black' : 'data-[state=active]:bg-white data-[state=active]:text-black'}`}>
-            <Play className="w-4 h-4 mr-2" />
-            Content Performance
-          </TabsTrigger>
-          <TabsTrigger value="audience" className={`${isLight ? 'data-[state=active]:bg-white data-[state=active]:text-black' : 'data-[state=active]:bg-white data-[state=active]:text-black'}`}>
-            <Users className="w-4 h-4 mr-2" />
-            Audience
-          </TabsTrigger>
-          <TabsTrigger value="engagement" className={`${isLight ? 'data-[state=active]:bg-white data-[state=active]:text-black' : 'data-[state=active]:bg-white data-[state=active]:text-black'}`}>
-            <Heart className="w-4 h-4 mr-2" />
-            Engagement
-          </TabsTrigger>
-        </TabsList>
-
         <TabsContent value="overview" className="mt-6">
           <div className="grid grid-cols-2 gap-6">
             {/* Views Over Time */}

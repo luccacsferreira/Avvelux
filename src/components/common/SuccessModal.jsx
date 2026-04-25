@@ -33,8 +33,8 @@ const SuccessModal = ({
             onClick={() => onOpenChange(false)}
             className={`w-full py-3 rounded-xl font-bold transition-all border ${
               isLight 
-                ? 'bg-gray-100 hover:bg-gray-200 text-black border-gray-200' 
-                : 'bg-white/10 hover:bg-white/20 text-white border-white/10'
+                ? 'bg-gray-200 hover:bg-gray-300 text-black border-gray-300' 
+                : 'bg-[#2a2a2a] hover:bg-[#333] text-white border-transparent'
             }`}
           >
             {buttonText}

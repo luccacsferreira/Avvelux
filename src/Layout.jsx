@@ -135,6 +135,9 @@ export default function Layout({ children, currentPageName }) {
           </button>
           <Link to={createPageUrl('Home')} className="flex items-center gap-2">
             <img src={isLightTheme ? LOGO_LIGHT : LOGO_DARK} alt="Avvelux" className="h-12 w-auto object-contain" />
+            {currentPageName === 'Analytics' && (
+              <span className="text-xl font-bold tracking-tight">Studio</span>
+            )}
           </Link>
         </div>
 

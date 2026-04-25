@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { useTheme } from '@/lib/theme';
 import { Post } from '@/api/entities';
-import { Upload as UploadIcon, Trash2, BarChart2, Image, FileText, Plus } from 'lucide-react';
+import { Upload as UploadIcon, Trash2, BarChart2, Image, FileText, Plus, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -130,6 +130,44 @@ export default function Upload() {
     setShowConfirmDialog(true);
   };
 
+  const captureFirstFrame = (videoFile) => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.src = URL.createObjectURL(videoFile);
+      video.muted = true;
+      video.playsInline = true;
+
+      video.onloadedmetadata = () => {
+        // Seek to 0.1 to avoid possible black frame at 0
+        video.currentTime = 0.1;
+      };
+
+      video.onseeked = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => {
+          // Clean up URL object
+          URL.revokeObjectURL(video.src);
+          if (blob) {
+            const file = new File([blob], "thumbnail.jpg", { type: "image/jpeg" });
+            resolve(file);
+          } else {
+            reject(new Error("Failed to capture frame"));
+          }
+        }, 'image/jpeg', 0.85);
+      };
+
+      video.onerror = (e) => {
+        URL.revokeObjectURL(video.src);
+        reject(e);
+      };
+    });
+  };
+
   const handleConfirmPublish = async () => {
     setShowConfirmDialog(false);
     setIsUploading(true);
@@ -138,8 +176,19 @@ export default function Upload() {
       let videoUrl = '';
       let imageUrl = '';
 
-      if (formData.thumbnailFile) {
-        thumbnailUrl = await videoService.uploadFile(formData.thumbnailFile, 'thumbnails');
+      let finalThumbnailFile = formData.thumbnailFile;
+      
+      // Auto-generate thumbnail if missing for video/clips
+      if (!finalThumbnailFile && (activeTab === 'Video' || activeTab === 'Clips') && formData.videoFile) {
+        try {
+          finalThumbnailFile = await captureFirstFrame(formData.videoFile);
+        } catch (e) {
+          console.error("Error generating thumbnail:", e);
+        }
+      }
+
+      if (finalThumbnailFile) {
+        thumbnailUrl = await videoService.uploadFile(finalThumbnailFile, 'thumbnails');
       }
       if (formData.videoFile) {
         videoUrl = await videoService.uploadFile(formData.videoFile, 'videos');
@@ -479,7 +528,7 @@ export default function Upload() {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConfirmDialog(false)} className={isLight ? 'border-gray-300' : 'border-gray-600'}>Cancel</Button>
+            <Button onClick={() => setShowConfirmDialog(false)} className={`border-none ${isLight ? 'bg-gray-200 text-black hover:bg-gray-300' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'}`}>Cancel</Button>
             <Button onClick={handleConfirmPublish} className="bg-gradient-to-r from-purple-600 to-cyan-500 text-white">Confirm</Button>
           </DialogFooter>
         </DialogContent>

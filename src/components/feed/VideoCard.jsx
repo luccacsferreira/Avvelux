@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../../utils';
 import LanguageBadge from '../common/LanguageBadge';
 import TranslationBadge from '../common/TranslationBadge';
@@ -7,6 +7,7 @@ import TranslationBadge from '../common/TranslationBadge';
 export default function VideoCard({ video, size = 'normal' }) {
   const [theme, setTheme] = useState('system');
   const [translatedTitle, setTranslatedTitle] = useState(null);
+  const navigate = useNavigate();
   
   useEffect(() => {
     setTheme(localStorage.getItem('avvelux-theme') || 'system');
@@ -14,9 +15,13 @@ export default function VideoCard({ video, size = 'normal' }) {
 
   const isLight = theme === 'light';
   const isSmall = size === 'small';
+
+  const handleCardClick = () => {
+    navigate(createPageUrl(`VideoPlayer?id=${video.id}`));
+  };
   
   return (
-    <Link to={createPageUrl(`VideoPlayer?id=${video.id}`)} className="group block">
+    <div onClick={handleCardClick} className="group block cursor-pointer">
       <div className="relative rounded-xl overflow-hidden aspect-video bg-gray-800">
         <img 
           src={video.thumbnail_url || 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400'} 
@@ -71,6 +76,6 @@ export default function VideoCard({ video, size = 'normal' }) {
           </p>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

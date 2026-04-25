@@ -20,11 +20,12 @@ export default function OverviewCards({ isLight, totalViews, totalLikes, totalFo
       growth: viewsGrowth,
       color: 'purple',
     },
+    // Action: Join
     {
       title: 'Total Likes',
       value: totalLikes.toLocaleString(),
       icon: Heart,
-      growth: ((Math.random() * 20) + 5).toFixed(1),
+      growth: 0,
       color: 'pink',
     },
     {
