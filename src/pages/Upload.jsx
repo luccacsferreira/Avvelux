@@ -69,6 +69,8 @@ const SUBCATEGORIES = {
 
 import { videoService } from '../services/videoService';
 
+import SuccessModal from '@/components/common/SuccessModal';
+
 export default function Upload() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -77,7 +79,7 @@ export default function Upload() {
   const [isUploading, setIsUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Post type: 'text' | 'image' | 'poll'
   const [postType, setPostType] = useState('text');
@@ -187,7 +189,7 @@ export default function Upload() {
       }
 
       setIsUploading(false);
-      setShowSuccessDialog(true);
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('Upload error:', error);
       const errorMessage = error.message || error.error_description || 'Failed to upload content';
@@ -197,7 +199,7 @@ export default function Upload() {
   };
 
   const handleSuccessClose = () => {
-    setShowSuccessDialog(false);
+    setShowSuccessModal(false);
     navigate(createPageUrl('Account'));
   };
 
@@ -453,13 +455,18 @@ export default function Upload() {
         <Button
           onClick={handlePublishClick}
           disabled={isUploading || !isFormComplete()}
-          className={`w-full py-6 font-medium text-lg ${
-            isFormComplete()
-              ? 'bg-gradient-to-r from-purple-600 to-cyan-500 text-white hover:opacity-90'
-              : 'bg-gray-500 text-white cursor-not-allowed'
+          className={`w-full py-8 font-bold text-xl rounded-2xl transition-all ${
+            !isFormComplete() || isUploading
+              ? (isLight ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white/5 text-gray-600 cursor-not-allowed opacity-40')
+              : 'bg-gradient-to-r from-purple-600 to-cyan-500 text-white hover:opacity-90 shadow-xl shadow-purple-500/20'
           }`}
         >
-          {isUploading ? 'Publishing...' : 'Publish'}
+          {isUploading ? (
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-6 h-6 animate-spin" />
+              Publishing...
+            </div>
+          ) : 'Publish'}
         </Button>
       </div>
 
@@ -478,19 +485,13 @@ export default function Upload() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showSuccessDialog} onOpenChange={handleSuccessClose}>
-        <DialogContent className={isLight ? 'bg-white' : 'bg-[#2a2a2a] border-gray-700'}>
-          <DialogHeader>
-            <DialogTitle className={isLight ? 'text-black' : 'text-white'}>Published Successfully! 🎉</DialogTitle>
-            <DialogDescription className={isLight ? 'text-gray-600' : 'text-gray-400'}>
-              Your content is now live.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={handleSuccessClose} className="bg-gradient-to-r from-purple-600 to-cyan-500 text-white">Go to Account</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SuccessModal 
+        open={showSuccessModal} 
+        onOpenChange={handleSuccessClose}
+        title="Published Successfully! 🎉"
+        message="Your content is now live and available for the community to discover."
+        buttonText="Go to Account"
+      />
     </div>
   );
 }

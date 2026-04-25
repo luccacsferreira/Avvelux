@@ -13,6 +13,7 @@ import EmptyState from '../components/common/EmptyState';
 import { Settings, Upload, BarChart3, Plus, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
+import SuccessModal from '@/components/common/SuccessModal';
 import {
   Dialog,
   DialogContent,
@@ -30,7 +31,14 @@ export default function Account() {
   const [hasStory, setHasStory] = useState(false);
   const [storyViewed, setStoryViewed] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, item: null, type: '' });
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const queryClient = useQueryClient();
+
+  const { data: myVideos = [] } = useQuery({
+    queryKey: ['my-videos', user?.id],
+    queryFn: () => user ? Video.filter({ user_id: user.id }) : [],
+    enabled: !!user,
+  });
 
   const { data: followers = [] } = useQuery({
     queryKey: ['followers', user?.id],
@@ -87,7 +95,7 @@ export default function Account() {
       };
       await entityMap[type].delete(item.id);
       queryClient.invalidateQueries({ queryKey: [`my-${type}s`] });
-      toast.success('Content deleted successfully');
+      setShowSuccessModal(true);
     } catch (error) {
       toast.error('Failed to delete content');
     }
@@ -147,20 +155,26 @@ export default function Account() {
         {/* Profile Info */}
         <div className="flex-1">
           <h1 className={`text-2xl font-bold mb-1 ${isLight ? 'text-black' : 'text-white'}`}>{nickname}</h1>
-          <p className={`mb-4 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>{username} • {followers.length} followers</p>
+          <p className={`mb-3 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
+            {username} • {followers.length} followers • {myVideos.length} videos
+          </p>
           
+          {user?.bio && (
+            <p className={`mb-4 text-sm max-w-lg ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>{user.bio}</p>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-3 flex-wrap">
             <Link to={createPageUrl('EditProfile')}>
               <button className={`px-4 py-1.5 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors ${isLight ? 'bg-gray-200 text-black hover:bg-gray-300' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'}`}>
                 <Settings className="w-4 h-4" />
-                Edit Profile
+                Customize channel
               </button>
             </Link>
             <Link to={createPageUrl('Upload')}>
               <button className={`px-4 py-1.5 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors ${isLight ? 'bg-gray-200 text-black hover:bg-gray-300' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'}`}>
                 <Upload className="w-4 h-4" />
-                Upload
+                Manage videos
               </button>
             </Link>
             <Link to={createPageUrl('Analytics')}>
@@ -170,9 +184,6 @@ export default function Account() {
               </button>
             </Link>
           </div>
-          {user?.bio && (
-            <p className={`mt-4 text-sm max-w-lg ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>{user.bio}</p>
-          )}
         </div>
       </div>
 
@@ -250,6 +261,13 @@ export default function Account() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <SuccessModal 
+        open={showSuccessModal} 
+        onOpenChange={setShowSuccessModal}
+        title="Content Deleted"
+        message="The item has been successfully removed from your account."
+      />
     </div>
   );
 }

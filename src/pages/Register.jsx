@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, EyeOff } from 'lucide-react';
-import SuccessModal from '@/components/auth/SuccessModal';
+import SuccessModal from '@/components/common/SuccessModal';
+import { useTheme } from '@/lib/theme';
 
 const Register = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +20,7 @@ const Register = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const { signUpWithEmail, user } = useAuth();
   const navigate = useNavigate();
+  const { isLight } = useTheme();
 
   // We don't auto-redirect here anymore to allow the success modal to show
   // useEffect(() => {
@@ -53,20 +55,20 @@ const Register = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a] p-4">
-      <Card className="w-full max-w-md bg-[#1a1a1a] border-gray-800 text-white">
+    <div className={`flex items-center justify-center min-h-screen ${isLight ? 'bg-gray-50' : 'bg-[#0a0a0a]'} p-4`}>
+      <Card className={`w-full max-w-md ${isLight ? 'bg-white border-gray-200 shadow-xl' : 'bg-[#1a1a1a] border-gray-800'} text-white`}>
         <CardHeader className="space-y-1">
-          <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-purple-500 to-cyan-500 bg-clip-text text-transparent">
+          <CardTitle className={`text-3xl font-bold text-center bg-gradient-to-r from-purple-500 to-cyan-500 bg-clip-text text-transparent`}>
             Register
           </CardTitle>
-          <CardDescription className="text-center text-gray-400">
+          <CardDescription className={`text-center ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
             Create an account to get started
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           <form onSubmit={handleEmailRegister} className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="displayName" className="text-gray-300">Display Name</Label>
+              <Label htmlFor="displayName" className={isLight ? 'text-gray-700' : 'text-gray-300'}>Display Name</Label>
               <Input
                 id="displayName"
                 type="text"
@@ -74,11 +76,11 @@ const Register = () => {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 required
-                className="bg-[#2a2a2a] border-gray-700 text-white focus:ring-purple-500"
+                className={`${isLight ? 'bg-gray-100 border-gray-200 text-black' : 'bg-[#2a2a2a] border-gray-700 text-white'} focus:ring-purple-500`}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="email" className="text-gray-300">Email</Label>
+              <Label htmlFor="email" className={isLight ? 'text-gray-700' : 'text-gray-300'}>Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -86,11 +88,11 @@ const Register = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-[#2a2a2a] border-gray-700 text-white focus:ring-purple-500"
+                className={`${isLight ? 'bg-gray-100 border-gray-200 text-black' : 'bg-[#2a2a2a] border-gray-700 text-white'} focus:ring-purple-500`}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password" className="text-gray-300">Password</Label>
+              <Label htmlFor="password" className={isLight ? 'text-gray-700' : 'text-gray-300'}>Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -98,12 +100,13 @@ const Register = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="bg-[#2a2a2a] border-gray-700 text-white focus:ring-purple-500 pr-10"
+                  className={`${isLight ? 'bg-gray-100 border-gray-200 text-black' : 'bg-[#2a2a2a] border-gray-700 text-white'} focus:ring-purple-500 pr-10`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-purple-400 focus:outline-none transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -121,7 +124,7 @@ const Register = () => {
           </form>
         </CardContent>
         <CardFooter className="flex flex-wrap items-center justify-center gap-2">
-          <div className="text-sm text-gray-400">
+          <div className={`${isLight ? 'text-gray-600' : 'text-gray-400'} text-sm`}>
             Already have an account?{' '}
             <Link to="/Login" className="text-purple-400 hover:underline font-bold">
               Login
@@ -131,10 +134,11 @@ const Register = () => {
       </Card>
 
       <SuccessModal 
-        isOpen={showSuccess} 
-        onClose={handleSuccessClose}
+        open={showSuccess} 
+        onOpenChange={handleSuccessClose}
         title="Account Created!"
         message="Your account has been successfully created. Welcome to Avvelux!"
+        buttonText="Get Started"
       />
     </div>
   );

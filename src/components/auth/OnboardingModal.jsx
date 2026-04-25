@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
 import { Check, Camera } from 'lucide-react';
 import ImageCropperModal from '@/components/common/ImageCropperModal';
+import SuccessModal from '@/components/common/SuccessModal';
 
 const STOCK_AVATARS = [
   { id: 'penguin', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Penguin', label: 'Penguin' },
@@ -37,18 +38,26 @@ export default function OnboardingModal() {
   const [error, setError] = useState('');
   const [cropperOpen, setCropperOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
 
   useEffect(() => {
     // If user exists but onboarding is not completed, show modal
     // Check localStorage as backup in case DB column is missing
-    const isCompletedLocal = localStorage.getItem(`avvelux_onboarding_done_${user?.id}`);
+    if (!user) {
+      setOpen(false);
+      return;
+    }
+
+    const isCompletedLocal = localStorage.getItem(`avvelux_onboarding_done_${user.id}`);
     
-    if (user && user.onboarding_completed === false && !isCompletedLocal) {
+    // Only show if onboarding_completed is EXPLICITLY false and not cached as completed
+    if (user.onboarding_completed === false && !isCompletedLocal) {
       setOpen(true);
       const defaultNick = user.display_name || user.email?.split('@')[0] || '';
       if (!displayName) setDisplayName(defaultNick);
       if (!username) setUsername(`@${defaultNick.toLowerCase().replace(/\s+/g, '')}`);
       if (!selectedAvatar) setSelectedAvatar(user.avatar_url || STOCK_AVATARS[0].url);
+      if (!bio && user.bio) setBio(user.bio);
     } else {
       setOpen(false);
     }
@@ -101,7 +110,7 @@ export default function OnboardingModal() {
       // Save to localStorage as backup
       localStorage.setItem(`avvelux_onboarding_done_${user.id}`, 'true');
 
-      toast.success('Profile setup complete!');
+      setSuccessModalOpen(true);
       setOpen(false);
     } catch (err) {
       console.error('Onboarding error:', err);
@@ -298,6 +307,13 @@ export default function OnboardingModal() {
           onOpenChange={setCropperOpen}
           image={imageToCrop}
           onCropComplete={handleCropComplete}
+        />
+
+        <SuccessModal 
+          open={successModalOpen} 
+          onOpenChange={setSuccessModalOpen}
+          title="Account Settled!"
+          message="Your profile has been successfully created. Welcome to the community!"
         />
       </DialogContent>
     </Dialog>

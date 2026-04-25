@@ -67,6 +67,12 @@ export default function Profile() {
 
   const currentUser = currentUserData;
 
+  const { data: profileVideos = [] } = useQuery({
+    queryKey: ['profile-videos', profileId],
+    queryFn: () => profileId ? Video.filter({ user_id: profileId }) : [],
+    enabled: !!profileId,
+  });
+
   const { data: followers = [] } = useQuery({
     queryKey: ['profile-followers', profileId],
     queryFn: () => profileId ? Follow.filter({ following_id: profileId }) : [],
@@ -171,8 +177,14 @@ export default function Profile() {
             )}
           </div>
           
-          <p className={`mb-3 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>{username} • {followers.length} followers</p>
+          <p className={`mb-3 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>
+            {username} • {followers.length} followers • {profileVideos.length} videos
+          </p>
           
+          {profileUser.bio && (
+            <p className={`text-sm mb-4 max-w-lg ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>{profileUser.bio}</p>
+          )}
+
           {/* Follow Button - only show if not viewing own profile */}
           {currentUser && currentUser.id !== profileUser.id && (
             <div className="mb-4">
@@ -197,10 +209,6 @@ export default function Profile() {
                 )}
               </Button>
             </div>
-          )}
-
-          {profileUser.bio && (
-            <p className={`text-sm mb-4 max-w-lg ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>{profileUser.bio}</p>
           )}
         </div>
       </div>

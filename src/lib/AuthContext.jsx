@@ -153,18 +153,26 @@ export const AuthProvider = ({ children }) => {
       }
       
       const finalData = { ...localData, ...data, id: userId, email };
-      setUser(finalData);
+      setUser(prev => {
+        // Only update if it's the same user to avoid race conditions
+        if (prev && prev.id !== userId) return prev;
+        return { ...(prev || {}), ...finalData };
+      });
       saveLocalProfile(userId, finalData);
       trackDeviceAccount(userId);
     } catch (error) {
       console.error('Error fetching/creating profile:', error);
       const localData = getLocalProfile(userId);
-      setUser({ 
-        id: userId, 
-        email, 
-        display_name: metadata?.display_name || email.split('@')[0], 
-        onboarding_completed: false,
-        ...localData
+      setUser(prev => {
+        if (prev && prev.id !== userId) return prev;
+        return { 
+          id: userId, 
+          email, 
+          display_name: metadata?.display_name || email.split('@')[0], 
+          onboarding_completed: false, // Default to false but localData might override
+          ...(prev || {}),
+          ...localData
+        };
       });
     }
   };
@@ -269,9 +277,9 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const finalData = await attemptUpdate(data);
-      // Use original 'data' for local state to preserve fields like 'bio' 
-      // even if column is missing in DB
+      // Merging: prev user state + data provided to updateUser
       setUser((prev) => {
+        if (!prev) return prev;
         const newUser = { ...prev, ...data };
         saveLocalProfile(user.id, newUser);
         return newUser;

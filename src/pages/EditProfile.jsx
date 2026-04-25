@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { useTheme } from '@/lib/theme';
-import { Camera, Save, Loader2, Check, Crop } from 'lucide-react';
+import { Camera, Save, Loader2, Check, Crop, ArrowLeft } from 'lucide-react';
 import ImageCropperModal from '@/components/common/ImageCropperModal';
+import SuccessModal from '@/components/common/SuccessModal';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
+import { useNavigate } from 'react-router-dom';
 
 const STOCK_AVATARS = [
   { id: 'penguin', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Penguin', label: 'Penguin' },
@@ -20,6 +22,7 @@ const STOCK_AVATARS = [
 export default function EditProfile() {
   const { user, updateUser } = useAuth();
   const { isLight } = useTheme();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     display_name: '',
     username: '',
@@ -30,17 +33,24 @@ export default function EditProfile() {
   const [isUploading, setIsUploading] = useState(false);
   const [cropperOpen, setCropperOpen] = useState(false);
   const [imageToCrop, setImageToCrop] = useState(null);
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+
+  const [initialData, setInitialData] = useState(null);
 
   useEffect(() => {
     if (user) {
-      setFormData({
+      const data = {
         display_name: user.display_name || '',
         username: user.username || '',
         bio: user.bio || '',
         avatar_url: user.avatar_url || '',
-      });
+      };
+      setFormData(data);
+      setInitialData(JSON.stringify(data));
     }
   }, [user]);
+
+  const hasChanges = initialData !== JSON.stringify(formData);
 
   const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
@@ -118,7 +128,7 @@ export default function EditProfile() {
         avatar_url: formData.avatar_url,
         updated_at: new Date().toISOString(),
       });
-      toast.success('Profile updated successfully!');
+      setSuccessModalOpen(true);
     } catch (error) {
       console.error('Error saving profile:', error);
       toast.error(error.message || 'Failed to update profile');
@@ -139,6 +149,15 @@ export default function EditProfile() {
 
   return (
     <div className="max-w-2xl mx-auto p-4">
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={() => navigate(-1)} 
+        className={`mb-4 -ml-2 gap-2 ${isLight ? 'text-gray-600 hover:text-black' : 'text-gray-400 hover:text-white'}`}
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back
+      </Button>
       <h1 className={`text-2xl font-bold mb-8 ${isLight ? 'text-black' : 'text-white'}`}>Edit Profile</h1>
 
       {/* Profile Picture */}
@@ -235,11 +254,15 @@ export default function EditProfile() {
 
         <Button
           onClick={handleSave}
-          disabled={isSaving || isUploading}
-          className="w-full bg-gradient-to-r from-purple-600 to-cyan-600 text-white"
+          disabled={isSaving || isUploading || !hasChanges}
+          className={`w-full font-bold py-6 rounded-xl transition-all ${
+            !hasChanges || isSaving || isUploading
+              ? (isLight ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-60' : 'bg-white/5 text-gray-500 cursor-not-allowed opacity-40')
+              : 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white hover:opacity-90'
+          }`}
         >
-          {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-          {isSaving ? 'Saving...' : 'Save Changes'}
+          {isSaving ? <Loader2 className="w-5 h-5 mr-3 animate-spin" /> : <Save className="w-5 h-5 mr-3" />}
+          {isSaving ? 'Saving Changes...' : 'Save Changes'}
         </Button>
       </div>
 
@@ -248,6 +271,13 @@ export default function EditProfile() {
         onOpenChange={setCropperOpen}
         image={imageToCrop}
         onCropComplete={handleCropComplete}
+      />
+
+      <SuccessModal 
+        open={successModalOpen} 
+        onOpenChange={setSuccessModalOpen}
+        title="Profile Updated!"
+        message="Your changes have been saved successfully."
       />
     </div>
   );

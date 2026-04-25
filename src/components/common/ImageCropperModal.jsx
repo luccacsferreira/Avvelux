@@ -2,8 +2,10 @@ import React, { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
 import { X, ZoomIn, ZoomOut, Check } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useTheme } from '@/lib/theme';
 
 const ImageCropperModal = ({ open, onOpenChange, image, onCropComplete }) => {
+  const { isLight } = useTheme();
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
@@ -75,10 +77,10 @@ const ImageCropperModal = ({ open, onOpenChange, image, onCropComplete }) => {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-[#1a1a1a] border-gray-800 text-white p-0 overflow-hidden">
-        <DialogHeader className="p-4 border-b border-gray-800 flex flex-row items-center justify-between space-y-0">
+      <DialogContent className={`sm:max-w-md ${isLight ? 'bg-white border-gray-200 text-black' : 'bg-[#1a1a1a] border-gray-800 text-white'} p-0 overflow-hidden`}>
+        <DialogHeader className={`p-4 border-b ${isLight ? 'border-gray-200' : 'border-gray-800'} flex flex-row items-center justify-between space-y-0`}>
           <DialogTitle className="text-lg">Crop Image</DialogTitle>
-          <button onClick={() => onOpenChange(false)} className="p-1 hover:bg-white/10 rounded-full transition-colors">
+          <button onClick={() => onOpenChange(false)} className={`p-1 ${isLight ? 'hover:bg-gray-100' : 'hover:bg-white/10'} rounded-full transition-colors`}>
             <X className="w-5 h-5" />
           </button>
         </DialogHeader>
@@ -99,7 +101,7 @@ const ImageCropperModal = ({ open, onOpenChange, image, onCropComplete }) => {
 
         <div className="p-6 space-y-6">
           <div className="flex items-center gap-4">
-            <ZoomOut className="w-4 h-4 text-gray-400" />
+            <ZoomOut className={`w-4 h-4 ${isLight ? 'text-gray-400' : 'text-gray-500'}`} />
             <input
               type="range"
               value={zoom}
@@ -108,21 +110,23 @@ const ImageCropperModal = ({ open, onOpenChange, image, onCropComplete }) => {
               step={0.1}
               aria-labelledby="Zoom"
               onChange={(e) => setZoom(parseFloat(e.target.value))}
-              className="flex-1 h-1.5 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-purple-500"
+              className={`flex-1 h-1.5 rounded-lg appearance-none cursor-pointer accent-purple-500 ${isLight ? 'bg-gray-200' : 'bg-gray-800'}`}
             />
-            <ZoomIn className="w-4 h-4 text-gray-400" />
+            <ZoomIn className={`w-4 h-4 ${isLight ? 'text-gray-400' : 'text-gray-500'}`} />
           </div>
 
           <div className="flex gap-3">
             <button
               onClick={() => onOpenChange(false)}
-              className="flex-1 py-2.5 rounded-xl border border-gray-800 hover:bg-white/5 transition-colors font-medium"
+              className={`flex-1 py-2.5 rounded-xl border transition-colors font-medium ${
+                isLight ? 'border-gray-200 hover:bg-gray-50 text-gray-700' : 'border-gray-800 hover:bg-white/5 text-gray-300'
+              }`}
             >
               Cancel
             </button>
             <button
               onClick={handleDone}
-              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-600 hover:opacity-90 transition-opacity font-bold flex items-center justify-center gap-2"
+              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-600 hover:opacity-90 transition-opacity font-bold text-white flex items-center justify-center gap-2"
             >
               <Check className="w-4 h-4" />
               Apply Crop
