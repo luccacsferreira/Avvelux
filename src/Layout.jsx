@@ -56,7 +56,7 @@ export default function Layout({ children, currentPageName }) {
     document.documentElement.style.colorScheme = isLightTheme ? 'light' : 'dark';
   }, [isLightTheme]);
 
-  const bgColor = isLightTheme ? 'bg-white' : 'bg-[#1a1a1a]';
+  const bgColor = isLightTheme ? 'bg-white' : 'bg-[#252525]';
   const textColor = isLightTheme ? 'text-black' : 'text-white';
   const textMuted = isLightTheme ? 'text-gray-600' : 'text-gray-400';
   const borderColor = isLightTheme ? 'border-gray-200' : 'border-gray-800';
@@ -115,14 +115,14 @@ export default function Layout({ children, currentPageName }) {
     navigate('/Login');
   };
 
-  const isClipsPage = currentPageName === 'Clips';
+  const isClipsPage = currentPageName === 'Clips' || currentPageName === 'ClipPlayer';
   const isMobileClips = false; // Show header even on clips page
 
   return (
     <div className={`min-h-screen ${bgColor} ${textColor} flex transition-colors duration-200`}>
       {/* Inject theme into html immediately to prevent flash */}
       <style>{`
-        html { background-color: ${isLightTheme ? '#ffffff' : '#1a1a1a'}; }
+        html { background-color: ${isLightTheme ? '#ffffff' : '#252525'}; }
         * { transition: background-color 0.15s ease, border-color 0.15s ease; }
       `}</style>
 

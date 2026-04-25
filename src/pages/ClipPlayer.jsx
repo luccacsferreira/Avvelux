@@ -61,7 +61,7 @@ export default function ClipPlayer() {
   const sectionBg = isLight ? 'bg-gray-100' : 'bg-white/5';
 
   return (
-    <div className={`h-full w-full flex items-center justify-center overflow-hidden ${isLight ? 'bg-white' : 'bg-[#1a1a1a]'}`}>
+    <div className={`h-[calc(100vh-56px)] mt-14 flex items-center justify-center overflow-hidden ${isLight ? 'bg-white' : 'bg-[#252525]'}`}>
       <div className="relative h-[92%] aspect-[9/16] bg-black shadow-2xl flex items-center justify-center rounded-3xl overflow-hidden border border-white/5">
         <video 
           ref={videoRef}
