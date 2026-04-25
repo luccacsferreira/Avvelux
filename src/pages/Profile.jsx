@@ -12,22 +12,17 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useSearchParams } from 'react-router-dom';
+import { useTheme } from '@/lib/theme';
 
 export default function Profile() {
   const [profileUser, setProfileUser] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState('Video');
-  const [theme, setTheme] = useState('system');
+  const { isLight } = useTheme();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
 
   const profileId = searchParams.get('id');
-
-  useEffect(() => {
-    setTheme(localStorage.getItem('avvelux-theme') || 'system');
-  }, []);
-
-  const isLight = theme === 'light';
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -110,8 +105,8 @@ export default function Profile() {
     { value: 'Posts', label: 'Posts', data: posts, type: 'post' },
   ];
 
-  const nickname = profileUser?.display_name?.split(' ')[0] || 'User';
-  const username = profileUser?.username || profileUser?.email?.split('@')[0] || 'user';
+  const nickname = profileUser?.display_name || 'User';
+  const username = profileUser?.username || (profileUser?.email ? `@${profileUser.email.split('@')[0]}` : '@user');
 
   if (!profileUser) {
     return (
@@ -135,7 +130,7 @@ export default function Profile() {
         {/* Profile Info */}
         <div className="flex-1">
           <h1 className={`text-2xl font-bold mb-1 ${isLight ? 'text-black' : 'text-white'}`}>{profileUser.display_name || nickname}</h1>
-          <p className={`mb-4 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>@{username} • {followers.length} followers • {following.length} following</p>
+          <p className={`mb-4 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>{username} • {followers.length} followers • {following.length} following</p>
           
           {/* Follow Button - only show if not viewing own profile */}
           {currentUser && currentUser.id !== profileId && (

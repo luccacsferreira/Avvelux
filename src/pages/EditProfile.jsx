@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
+import { useTheme } from '@/lib/theme';
 import { Camera, Save, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 
 export default function EditProfile() {
   const { user, updateUser } = useAuth();
+  const { isLight } = useTheme();
   const [formData, setFormData] = useState({
     display_name: '',
     username: '',
@@ -61,8 +63,30 @@ export default function EditProfile() {
   };
 
   const handleSave = async () => {
+    if (!formData.username.startsWith('@')) {
+      toast.error('Username must start with @');
+      return;
+    }
+    if (formData.username.length < 4) {
+      toast.error('Username too short');
+      return;
+    }
+
     setIsSaving(true);
     try {
+      // Check for username uniqueness if it changed
+      if (formData.username !== user?.username) {
+        const { data: existing } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', formData.username)
+          .maybeSingle();
+
+        if (existing) {
+          throw new Error('This username is already taken');
+        }
+      }
+
       await updateUser({
         display_name: formData.display_name,
         username: formData.username,
@@ -79,9 +103,15 @@ export default function EditProfile() {
     }
   };
 
+  const handleUsernameChange = (val) => {
+    let clean = val.toLowerCase().replace(/\s+/g, '');
+    if (clean.length > 0 && !clean.startsWith('@')) {
+      clean = '@' + clean;
+    }
+    setFormData({ ...formData, username: clean });
+  };
+
   const displayName = formData.display_name || user?.display_name || 'User';
-  const theme = localStorage.getItem('avvelux-theme') || 'night';
-  const isLight = theme === 'light';
 
   return (
     <div className="max-w-2xl mx-auto p-4">
@@ -104,7 +134,7 @@ export default function EditProfile() {
         </div>
         <div>
           <h3 className={`font-medium ${isLight ? 'text-black' : 'text-white'}`}>{displayName}</h3>
-          <p className="text-gray-400 text-sm">@{formData.username || user?.email?.split('@')[0]}</p>
+          <p className="text-gray-400 text-sm">{formData.username || (user?.email ? `@${user.email.split('@')[0]}` : '@user')}</p>
         </div>
       </div>
 
@@ -124,8 +154,8 @@ export default function EditProfile() {
           <Label className={`${isLight ? 'text-black' : 'text-white'} mb-2 block`}>Username</Label>
           <Input
             value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
-            placeholder="unique_username"
+            onChange={(e) => handleUsernameChange(e.target.value)}
+            placeholder="@unique_username"
             className={`${isLight ? 'bg-gray-100 border-gray-300 text-black' : 'bg-[#2a2a2a] border-gray-700 text-white'}`}
           />
         </div>

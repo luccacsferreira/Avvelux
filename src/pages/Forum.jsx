@@ -8,12 +8,7 @@ import { createPageUrl } from '../utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-
-function useTheme() {
-  const [isLight, setIsLight] = useState(false);
-  useEffect(() => { setIsLight(localStorage.getItem('avvelux-theme') === 'light'); }, []);
-  return isLight;
-}
+import { useTheme } from '@/lib/theme';
 
 function timeAgo(dateStr) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -26,7 +21,7 @@ function timeAgo(dateStr) {
 }
 
 export default function Forum() {
-  const isLight = useTheme();
+  const { isLight } = useTheme();
   const qc = useQueryClient();
   const [searchParams] = useSearchParams();
   const groupId = searchParams.get('groupId');

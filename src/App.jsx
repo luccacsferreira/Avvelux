@@ -14,6 +14,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { getInitialTheme } from '@/lib/theme';
 
 import LoginModal from './components/auth/LoginModal';
+import OnboardingModal from './components/auth/OnboardingModal';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -26,6 +27,10 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 const AuthenticatedApp = () => {
   const { isLoadingAuth, user, authError } = useAuth();
   const [theme] = useState(getInitialTheme());
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
 
   // Dynamic Favicon Switcher
   useEffect(() => {
@@ -87,6 +92,7 @@ const AuthenticatedApp = () => {
   return (
     <>
       <LoginModal />
+      <OnboardingModal />
       <Routes>
         <Route path="/Login" element={<Login />} />
         <Route path="/Register" element={<Register />} />

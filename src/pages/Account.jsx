@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { useAuth } from '@/lib/AuthContext';
+import { useTheme } from '@/lib/theme';
 import { videoService } from '../services/videoService';
 import { Video, Clip, Post, Story, Follow } from '@/api/entities';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -24,18 +25,12 @@ import { toast } from "sonner";
 
 export default function Account() {
   const { user } = useAuth();
+  const { isLight } = useTheme();
   const [activeTab, setActiveTab] = useState('Video');
   const [hasStory, setHasStory] = useState(false);
   const [storyViewed, setStoryViewed] = useState(false);
-  const [theme, setTheme] = useState('night');
   const [deleteDialog, setDeleteDialog] = useState({ open: false, item: null, type: '' });
   const queryClient = useQueryClient();
-
-  useEffect(() => {
-    setTheme(localStorage.getItem('avvelux-theme') || 'system');
-  }, []);
-
-  const isLight = theme === 'light';
 
   const { data: followers = [] } = useQuery({
     queryKey: ['followers', user?.id],
@@ -105,8 +100,8 @@ export default function Account() {
     { value: 'Posts', label: 'Posts', data: posts, type: 'post' },
   ];
 
-  const nickname = user?.display_name || user?.username || 'User';
-  const username = user?.username || user?.email?.split('@')[0] || 'user';
+  const nickname = user?.display_name || user?.username?.replace('@', '') || 'User';
+  const username = user?.username || (user?.email ? `@${user.email.split('@')[0]}` : '@user');
 
   const ContentCard = ({ item, type, children }) => (
     <div className="relative group">
@@ -152,7 +147,7 @@ export default function Account() {
         {/* Profile Info */}
         <div className="flex-1">
           <h1 className={`text-2xl font-bold mb-1 ${isLight ? 'text-black' : 'text-white'}`}>{nickname}</h1>
-          <p className={`mb-4 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>@{username} • {followers.length} followers • {following.length} following • 0 friends</p>
+          <p className={`mb-4 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>{username} • {followers.length} followers • {following.length} following • 0 friends</p>
           
           {/* Action Buttons */}
           <div className="flex gap-3 flex-wrap">

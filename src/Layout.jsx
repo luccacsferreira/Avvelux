@@ -51,6 +51,7 @@ export default function Layout({ children, currentPageName }) {
 
   // Apply theme class to root immediately to prevent flash
   useEffect(() => {
+    document.documentElement.classList.toggle('dark', !isLightTheme);
     document.documentElement.style.backgroundColor = isLightTheme ? '#ffffff' : '#1a1a1a';
     document.documentElement.style.colorScheme = isLightTheme ? 'light' : 'dark';
   }, [isLightTheme]);

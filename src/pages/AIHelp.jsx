@@ -8,6 +8,7 @@ import { createPageUrl } from '../utils';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTheme } from '@/lib/theme';
 import {
   Dialog,
   DialogContent,
@@ -16,8 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-
-const LOGO = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/user_6984c7fa1a63b2e9390a4414/843b19437_ModerneAVlogoingradint.png";
 
 const AILogo = () => (
   <div className="w-full h-full flex items-center justify-center">
@@ -34,17 +33,11 @@ export default function AIHelp() {
   const [streamingText, setStreamingText] = useState('');
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [theme, setTheme] = useState('system');
+  const { isLight } = useTheme();
   const [deleteChatDialog, setDeleteChatDialog] = useState({ open: false, chatId: null });
   const [newChatTitle, setNewChatTitle] = useState(null); // for streaming chat title in sidebar
   const messagesEndRef = useRef(null);
   
-  useEffect(() => {
-    setTheme(localStorage.getItem('avvelux-theme') || 'system');
-  }, []);
-  
-  const isLight = theme === 'light';
-
   useEffect(() => {
     const loadUser = async () => {
       try {

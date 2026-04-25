@@ -249,14 +249,20 @@ create table if not exists public.user_accounts (
 -- Function to handle new user signups
 create or replace function public.handle_new_user()
 returns trigger as $$
+declare
+  base_name text;
 begin
+  base_name := lower(coalesce(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1)));
+  base_name := regexp_replace(base_name, '\s+', '', 'g'); -- Remove spaces
+  
   insert into public.profiles (id, display_name, username, avatar_url)
   values (
     new.id, 
-    coalesce(new.raw_user_meta_data->>'display_name', new.email),
-    coalesce(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1)),
+    base_name,
+    '@' || base_name,
     ''
-  );
+  )
+  on conflict (id) do nothing; -- Prevent errors if app also tries to insert
   return new;
 end;
 $$ language plpgsql security definer;

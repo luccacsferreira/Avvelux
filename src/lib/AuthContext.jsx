@@ -88,10 +88,11 @@ export const AuthProvider = ({ children }) => {
       if (error && error.code === 'PGRST116') {
         // Profile doesn't exist yet (trigger might be slow or failed)
         // Fallback: create it manually
+        const baseName = metadata?.display_name?.toLowerCase().replace(/\s+/g, '') || email.split('@')[0].toLowerCase();
         const newProfile = {
           id: userId,
-          username: metadata?.display_name?.toLowerCase().replace(/\s+/g, '_') || email.split('@')[0],
-          display_name: metadata?.display_name || email.split('@')[0],
+          username: `@${baseName}`,
+          display_name: baseName,
           avatar_url: metadata?.avatar_url || '',
           bio: '',
           created_at: new Date().toISOString(),

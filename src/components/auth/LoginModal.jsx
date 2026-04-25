@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
+import { useTheme } from '@/lib/theme';
 import { 
   Dialog, 
   DialogContent, 
@@ -17,6 +18,7 @@ export default function LoginModal() {
     signInWithEmail,
     signUpWithEmail
   } = useAuth();
+  const { isLight } = useTheme();
   
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
@@ -52,14 +54,20 @@ export default function LoginModal() {
     }
   };
 
+  const bgColor = isLight ? 'bg-white' : 'bg-[#1a1a1a]';
+  const textColor = isLight ? 'text-black' : 'text-white';
+  const borderColor = isLight ? 'border-gray-200' : 'border-gray-800';
+  const inputBg = isLight ? 'bg-gray-100' : 'bg-[#2a2a2a]';
+  const textMuted = isLight ? 'text-gray-600' : 'text-gray-400';
+
   return (
     <Dialog open={isLoginModalOpen} onOpenChange={setIsLoginModalOpen}>
-      <DialogContent className="sm:max-w-[425px] bg-[#1a1a1a] text-white border-gray-800">
+      <DialogContent className={`sm:max-w-[425px] ${bgColor} ${textColor} ${borderColor}`}>
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-center">
+          <DialogTitle className={`text-2xl font-bold text-center ${textColor}`}>
             {isSignUp ? 'Join Avvelux' : 'Welcome to Avvelux'}
           </DialogTitle>
-          <DialogDescription className="text-center text-gray-400">
+          <DialogDescription className={`text-center ${textMuted}`}>
             {isSignUp 
               ? 'Create an account to start sharing and interacting.' 
               : 'Sign in to like, comment, and access your profile.'}
@@ -75,7 +83,7 @@ export default function LoginModal() {
                   placeholder="Display Name"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="bg-[#2a2a2a] border-none text-white placeholder:text-gray-500"
+                  className={`border-none ${inputBg} ${textColor} placeholder:text-gray-500`}
                   required
                 />
               </div>
@@ -86,7 +94,7 @@ export default function LoginModal() {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="bg-[#2a2a2a] border-none text-white placeholder:text-gray-500"
+                className={`border-none ${inputBg} ${textColor} placeholder:text-gray-500`}
                 required
               />
             </div>
@@ -96,7 +104,7 @@ export default function LoginModal() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="bg-[#2a2a2a] border-none text-white placeholder:text-gray-500"
+                className={`border-none ${inputBg} ${textColor} placeholder:text-gray-500`}
                 required
               />
             </div>
@@ -113,7 +121,7 @@ export default function LoginModal() {
             </Button>
           </form>
 
-          <div className="text-center text-sm text-gray-400 mt-2">
+          <div className={`text-center text-sm ${textMuted} mt-2`}>
             {isSignUp ? (
               <p>
                 Already have an account?{' '}

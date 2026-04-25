@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
+import { useTheme } from '@/lib/theme';
 import { Post } from '@/api/entities';
 import { Upload as UploadIcon, Trash2, BarChart2, Image, FileText, Plus } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -71,10 +72,10 @@ import { videoService } from '../services/videoService';
 export default function Upload() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isLight } = useTheme();
   const [activeTab, setActiveTab] = useState('Video');
   const [isUploading, setIsUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [theme, setTheme] = useState('night');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
@@ -83,11 +84,8 @@ export default function Upload() {
   const [pollOptions, setPollOptions] = useState(['', '']);
 
   useEffect(() => {
-    setTheme(localStorage.getItem('avvelux-theme') || 'system');
     window.scrollTo(0, 0);
   }, []);
-
-  const isLight = theme === 'light';
 
   const [formData, setFormData] = useState({
     title: '',

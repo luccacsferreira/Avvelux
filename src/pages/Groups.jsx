@@ -8,14 +8,9 @@ import { createPageUrl } from '../utils';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { useTheme } from '@/lib/theme';
 
 const CATEGORIES = ['All', 'Business', 'Self-Help', 'Gaming', 'Tech', 'Music', 'Sports', 'General'];
-
-function useTheme() {
-  const [isLight, setIsLight] = useState(false);
-  useEffect(() => { setIsLight(localStorage.getItem('avvelux-theme') === 'light'); }, []);
-  return isLight;
-}
 
 const CATEGORY_COVERS = {
   Business: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
@@ -28,7 +23,7 @@ const CATEGORY_COVERS = {
 };
 
 export default function Groups() {
-  const isLight = useTheme();
+  const { isLight } = useTheme();
   const qc = useQueryClient();
   const [user, setUser] = useState(null);
   const [search, setSearch] = useState('');

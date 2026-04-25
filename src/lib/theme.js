@@ -1,3 +1,5 @@
+import React from 'react';
+
 export function getInitialTheme() {
   if (typeof window === 'undefined') return 'dark';
   
@@ -13,4 +15,20 @@ export function getInitialTheme() {
   }
   
   return 'light';
+}
+
+export function useTheme() {
+  const [theme, setTheme] = React.useState(getInitialTheme());
+
+  React.useEffect(() => {
+    const handleThemeChange = () => {
+      setTheme(localStorage.getItem('avvelux-theme') || getInitialTheme());
+    };
+    window.addEventListener('avvelux-theme-changed', handleThemeChange);
+    return () => window.removeEventListener('avvelux-theme-changed', handleThemeChange);
+  }, []);
+
+  const isLight = theme === 'light';
+
+  return { theme, isLight };
 }

@@ -25,13 +25,6 @@ const useTheme = () => {
   return isLight;
 };
 
-const sampleHistory = [
-  { id: 'v1', title: 'How to Manage Your Time Like a Philosopher', thumbnail_url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600', duration: '18:42', views: 5200000, creator_name: 'ThinkSmarter', creator_id: 'u1', creator_avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop', category: 'Self-Help' },
-  { id: 'v2', title: 'Top 10 Gaming Moments of 2024', thumbnail_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600', duration: '22:10', views: 9100000, creator_name: 'GamingPeak', creator_id: 'u2', creator_avatar: 'https://images.unsplash.com/photo-1568602471122-7832951cc4c5?w=80&h=80&fit=crop', category: 'Gaming' },
-  { id: 'v3', title: 'Geopolitics: Why the Middle East Will Never Be the Same', thumbnail_url: 'https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=600', duration: '45:10', views: 3300000, creator_name: 'WorldReport', creator_id: 'u3', creator_avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=80&h=80&fit=crop', category: 'Geopolitics' },
-  { id: 'v4', title: 'Office Prank Compilation - Best of 2024 😂', thumbnail_url: 'https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?w=600', duration: '11:05', views: 14000000, creator_name: 'PrankKing', creator_id: 'u4', creator_avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&h=80&fit=crop', category: 'Pranks' },
-];
-
 export default function Library() {
   const isLight = useTheme();
   const { user } = useAuth();
@@ -39,6 +32,7 @@ export default function Library() {
   const text = isLight ? 'text-black' : 'text-white';
   const textMuted = isLight ? 'text-gray-500' : 'text-gray-400';
   const cardBg = isLight ? 'bg-gray-100' : 'bg-[#2a2a2a]';
+  const history = []; // Empty history as sample is removed
 
   const quickLinks = [
     { icon: ThumbsUp, label: 'Liked Content', color: 'text-purple-500' },
@@ -49,7 +43,7 @@ export default function Library() {
   ];
 
   const sections = [
-    { icon: History, label: 'Watch History', items: sampleHistory, type: 'videos' },
+    { icon: History, label: 'Watch History', items: history, type: 'videos' },
     { icon: User, label: 'Your Content', count: 12 },
     { icon: CreditCard, label: 'Membership', status: 'Active' },
     { icon: Users, label: 'My Communities', count: 5 },
@@ -87,7 +81,7 @@ export default function Library() {
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {sampleHistory.map((video) => (
+          {history.map((video) => (
             <VideoCard key={video.id} video={video} />
           ))}
         </div>

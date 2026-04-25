@@ -10,6 +10,7 @@ import {
   Send, FileText, Lightbulb
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
+import { supabase } from '@/lib/supabase';
 
 function formatCount(n) {
   if (!n) return '0';
@@ -30,12 +31,6 @@ const AILogo = () => (
     </svg>
   </div>
 );
-
-const sampleRelatedVideos = [
-  { id: '2', title: '5-Minute Meditation for Anxiety Relief', thumbnail_url: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600', duration: '5:30', views: 8500000, creator_name: 'Mindful Living' },
-  { id: '1', title: 'Full Body Workout - Build Muscle at Home (30 Min)', thumbnail_url: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600', duration: '32:18', views: 5200000, creator_name: 'FitLife' },
-  { id: '3', title: 'How to Overcome Fear and Take Action', thumbnail_url: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=600', duration: '18:33', views: 4200000, creator_name: 'Success Mindset' },
-];
 
 import { videoService } from '../services/videoService';
 import VideoAd from '../components/video/VideoAd';
@@ -89,7 +84,7 @@ export default function VideoPlayer() {
   });
 
   const video = videoData || { 
-    id: videoId || '1', 
+    id: videoId || '', 
     title: isVideoLoading ? 'Loading Video...' : 'Video Not Found', 
     description: '', 
     thumbnail_url: '', 
@@ -399,7 +394,7 @@ export default function VideoPlayer() {
                   >
                     {video.creator_name}
                   </Link>
-                  <p className={`text-xs md:text-sm ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>120K subscribers</p>
+                  <p className={`text-xs md:text-sm ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>{video.creator_name ? 'Certified Creator' : ''}</p>
                 </div>
               </div>
               <Button 
@@ -445,7 +440,7 @@ export default function VideoPlayer() {
           {/* Video Description */}
           <div className={`rounded-xl p-3 md:p-4 mb-6 ${isLight ? 'bg-gray-100' : 'bg-white/5'}`}>
             <p className={`text-xs md:text-sm mb-1 font-semibold ${isLight ? 'text-black' : 'text-white'}`}>
-              {formatCount(video.views)} views • 7 days ago
+              {formatCount(video.views)} views • {video.created_at ? new Date(video.created_at).toLocaleDateString() : 'Just now'}
             </p>
             <p className={`text-xs md:text-sm ${isLight ? 'text-gray-800' : 'text-gray-200'} line-clamp-3 md:line-clamp-none`}>
               {video.description}
@@ -487,7 +482,7 @@ export default function VideoPlayer() {
                   <div>
                     <p className={`text-xs md:text-sm ${isLight ? 'text-black' : 'text-white'}`}>
                       <span className="font-medium">{comment.author_name}</span>
-                      <span className="text-gray-500 ml-2">1h ago</span>
+                      <span className="text-gray-500 ml-2">{comment.created_at ? new Date(comment.created_at).toLocaleDateString() : 'Just now'}</span>
                     </p>
                     <p className={`text-xs md:text-sm mt-1 ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>{comment.body}</p>
                   </div>
