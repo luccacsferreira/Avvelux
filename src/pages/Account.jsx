@@ -147,7 +147,7 @@ export default function Account() {
         {/* Profile Info */}
         <div className="flex-1">
           <h1 className={`text-2xl font-bold mb-1 ${isLight ? 'text-black' : 'text-white'}`}>{nickname}</h1>
-          <p className={`mb-4 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>{username} • {followers.length} followers • {following.length} following • 0 friends</p>
+          <p className={`mb-4 ${isLight ? 'text-gray-600' : 'text-gray-400'}`}>{username} • {followers.length} followers</p>
           
           {/* Action Buttons */}
           <div className="flex gap-3 flex-wrap">
@@ -170,6 +170,9 @@ export default function Account() {
               </button>
             </Link>
           </div>
+          {user?.bio && (
+            <p className={`mt-4 text-sm max-w-lg ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>{user.bio}</p>
+          )}
         </div>
       </div>
 

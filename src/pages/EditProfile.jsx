@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/AuthContext';
 import { useTheme } from '@/lib/theme';
-import { Camera, Save, Loader2 } from 'lucide-react';
+import { Camera, Save, Loader2, Check, Crop } from 'lucide-react';
+import ImageCropperModal from '@/components/common/ImageCropperModal';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase';
+
+const STOCK_AVATARS = [
+  { id: 'penguin', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Penguin', label: 'Penguin' },
+  { id: 'fox', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Fox', label: 'Fox' },
+  { id: 'panda', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Panda', label: 'Panda' },
+  { id: 'tiger', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Tiger', label: 'Tiger' },
+];
 
 export default function EditProfile() {
   const { user, updateUser } = useAuth();
@@ -20,6 +28,8 @@ export default function EditProfile() {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState(null);
 
   useEffect(() => {
     if (user) {
@@ -32,15 +42,28 @@ export default function EditProfile() {
     }
   }, [user]);
 
-  const handleAvatarUpload = async (e) => {
+  const handleFileSelect = (e) => {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    if (!file) return;
 
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageToCrop(reader.result);
+      setCropperOpen(true);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleCropComplete = async (croppedImageBlobUrl) => {
     setIsUploading(true);
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const response = await fetch(croppedImageBlobUrl);
+      const blob = await response.blob();
+      const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+
+      const fileName = `${user.id}-${Math.random().toString(36).substring(2)}.jpg`;
+      const filePath = `avatars/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
@@ -53,7 +76,7 @@ export default function EditProfile() {
         .getPublicUrl(filePath);
 
       setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
-      toast.success('Avatar uploaded! Save changes to apply.');
+      toast.success('Avatar cropped and uploaded! Remember to save changes.');
     } catch (error) {
       console.error('Error uploading avatar:', error);
       toast.error('Failed to upload avatar');
@@ -80,6 +103,7 @@ export default function EditProfile() {
           .from('profiles')
           .select('id')
           .eq('username', formData.username)
+          .neq('id', user.id)
           .maybeSingle();
 
         if (existing) {
@@ -118,23 +142,62 @@ export default function EditProfile() {
       <h1 className={`text-2xl font-bold mb-8 ${isLight ? 'text-black' : 'text-white'}`}>Edit Profile</h1>
 
       {/* Profile Picture */}
-      <div className="flex items-center gap-6 mb-8">
-        <div className="relative">
-          {formData.avatar_url ? (
-            <img src={formData.avatar_url} alt={displayName} className="w-24 h-24 rounded-full object-cover border-2 border-purple-500" />
-          ) : (
-            <div className="w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center text-white text-3xl font-medium">
-              {displayName[0]?.toUpperCase()}
-            </div>
-          )}
-          <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#2a2a2a] border border-gray-700 flex items-center justify-center text-white hover:bg-[#3a3a3a] cursor-pointer">
-            <input type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} disabled={isUploading} />
-            {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-          </label>
+      <div className="flex flex-col gap-6 mb-8">
+        <div className="flex items-center gap-6">
+          <div className="relative">
+            {formData.avatar_url ? (
+              <div className="relative group/avatar">
+                <img src={formData.avatar_url} alt={displayName} className="w-24 h-24 rounded-full object-cover border-2 border-purple-500" />
+                <button 
+                  onClick={() => {
+                    setImageToCrop(formData.avatar_url);
+                    setCropperOpen(true);
+                  }}
+                  className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover/avatar:opacity-100 flex items-center justify-center text-white transition-opacity"
+                >
+                  <Crop className="w-6 h-6" />
+                </button>
+              </div>
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center text-white text-3xl font-medium">
+                {displayName[0]?.toUpperCase()}
+              </div>
+            )}
+            <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-[#2a2a2a] border border-gray-700 flex items-center justify-center text-white hover:bg-[#3a3a3a] cursor-pointer shadow-lg">
+              <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} disabled={isUploading} />
+              {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+            </label>
+          </div>
+          <div>
+            <h3 className={`font-bold text-lg ${isLight ? 'text-black' : 'text-white'}`}>{displayName}</h3>
+            <p className="text-gray-400 text-sm">{formData.username || (user?.email ? `@${user.email.split('@')[0]}` : '@user')}</p>
+          </div>
         </div>
-        <div>
-          <h3 className={`font-medium ${isLight ? 'text-black' : 'text-white'}`}>{displayName}</h3>
-          <p className="text-gray-400 text-sm">{formData.username || (user?.email ? `@${user.email.split('@')[0]}` : '@user')}</p>
+
+        {/* Stock Avatars */}
+        <div className="space-y-3">
+          <Label className={`${isLight ? 'text-black' : 'text-white'} text-xs font-medium uppercase tracking-wider opacity-60`}>Or pick a stock avatar</Label>
+          <div className="flex flex-wrap gap-3">
+            {STOCK_AVATARS.map((avatar) => (
+              <button
+                key={avatar.id}
+                type="button"
+                onClick={() => setFormData({ ...formData, avatar_url: avatar.url })}
+                className={`relative w-12 h-12 rounded-full border-2 transition-all p-0.5 ${
+                  formData.avatar_url === avatar.url 
+                    ? 'border-purple-500 bg-purple-500/10' 
+                    : 'border-transparent bg-white/5 hover:border-white/20'
+                }`}
+              >
+                <img src={avatar.url} alt={avatar.label} className="w-full h-full rounded-full object-cover" />
+                {formData.avatar_url === avatar.url && (
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center text-white">
+                    <Check className="w-2.5 h-2.5" strokeWidth={4} />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -179,6 +242,13 @@ export default function EditProfile() {
           {isSaving ? 'Saving...' : 'Save Changes'}
         </Button>
       </div>
+
+      <ImageCropperModal
+        open={cropperOpen}
+        onOpenChange={setCropperOpen}
+        image={imageToCrop}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 }

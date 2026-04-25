@@ -76,18 +76,53 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
+  const saveLocalProfile = (userId, data) => {
+    if (!userId) return;
+    // Exclude fields we don't want to cache locally or that are sensitive
+    const { id, email, ...safeData } = data;
+    localStorage.setItem(`avvelux_profile_${userId}`, JSON.stringify(safeData));
+  };
+
+  const getLocalProfile = (userId) => {
+    if (!userId) return null;
+    try {
+      const data = localStorage.getItem(`avvelux_profile_${userId}`);
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      return null;
+    }
+  };
+
   const fetchProfile = async (userId, email, metadata) => {
     try {
-      // Try to get the profile. The trigger on auth.users should have created it.
-      let { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      // Load from localStorage first for immediate UI update
+      const localData = getLocalProfile(userId);
+      if (localData) {
+        setUser(prev => ({ ...(prev || {}), id: userId, email, ...localData }));
+      }
+
+      const attemptFetch = async (columns = '*') => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select(columns)
+          .eq('id', userId)
+          .single();
+        
+        if (error) {
+          if (error.message?.includes('column') || error.message?.includes('schema cache')) {
+            if (columns === '*') {
+              console.warn('Selecting all columns failed, retrying with basic set');
+              return attemptFetch('id, username, display_name, avatar_url');
+            }
+          }
+          return { data: null, error };
+        }
+        return { data, error: null };
+      };
+
+      let { data, error } = await attemptFetch('*');
 
       if (error && error.code === 'PGRST116') {
-        // Profile doesn't exist yet (trigger might be slow or failed)
-        // Fallback: create it manually
         const baseName = metadata?.display_name?.toLowerCase().replace(/\s+/g, '') || email.split('@')[0].toLowerCase();
         const newProfile = {
           id: userId,
@@ -95,6 +130,7 @@ export const AuthProvider = ({ children }) => {
           display_name: baseName,
           avatar_url: metadata?.avatar_url || '',
           bio: '',
+          onboarding_completed: false,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -106,13 +142,7 @@ export const AuthProvider = ({ children }) => {
           .single();
 
         if (createError) {
-          // If insert fails (maybe trigger just finished), try selecting one last time
-          const { data: retryData, error: retryError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-          
+          const { data: retryData, error: retryError } = await attemptFetch('id, username, display_name, avatar_url');
           if (retryError) throw retryError;
           data = retryData;
         } else {
@@ -122,12 +152,20 @@ export const AuthProvider = ({ children }) => {
         throw error;
       }
       
-      setUser({ ...data, email });
+      const finalData = { ...localData, ...data, id: userId, email };
+      setUser(finalData);
+      saveLocalProfile(userId, finalData);
       trackDeviceAccount(userId);
     } catch (error) {
       console.error('Error fetching/creating profile:', error);
-      // Fallback user object if profile fetch fails completely
-      setUser({ id: userId, email, display_name: metadata?.display_name || email.split('@')[0] });
+      const localData = getLocalProfile(userId);
+      setUser({ 
+        id: userId, 
+        email, 
+        display_name: metadata?.display_name || email.split('@')[0], 
+        onboarding_completed: false,
+        ...localData
+      });
     }
   };
 
@@ -190,14 +228,52 @@ export const AuthProvider = ({ children }) => {
 
   const updateUser = async (data) => {
     if (!user) return;
-    try {
+    
+    const attemptUpdate = async (updateData) => {
       const { error } = await supabase
         .from('profiles')
-        .update(data)
+        .update(updateData)
         .eq('id', user.id);
       
-      if (error) throw error;
-      setUser((prev) => ({ ...prev, ...data }));
+      if (error) {
+        // Check for column missing errors
+        if (error.message?.includes('column') || 
+            error.message?.includes('schema cache') || 
+            error.code === '42703' // PostgreSQL undefined_column
+        ) {
+          // Identify which column failed from the error message if possible
+          const match = error.message.match(/column "(.*?)"/);
+          const failingColumn = match ? match[1] : null;
+          
+          if (failingColumn && updateData[failingColumn] !== undefined) {
+            console.warn(`Column "${failingColumn}" missing, retrying without it`);
+            const { [failingColumn]: removed, ...rest } = updateData;
+            return attemptUpdate(rest);
+          }
+          
+          // If we can't identify the column but it's a schema issue, 
+          // try some common optional ones that might be missing in remixed apps
+          const commonOptionalCols = ['bio', 'onboarding_completed', 'updated_at'];
+          for (const col of commonOptionalCols) {
+            if (updateData[col] !== undefined) {
+              console.warn(`Attempting retry without common optional column: ${col}`);
+              const { [col]: removed, ...rest } = updateData;
+              return attemptUpdate(rest);
+            }
+          }
+        }
+        throw error;
+      }
+      return updateData;
+    };
+
+    try {
+      const finalData = await attemptUpdate(data);
+      setUser((prev) => {
+        const newUser = { ...prev, ...finalData };
+        saveLocalProfile(user.id, newUser);
+        return newUser;
+      });
     } catch (error) {
       console.error('Error updating profile:', error);
       throw error;

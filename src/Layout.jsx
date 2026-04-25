@@ -191,8 +191,12 @@ export default function Layout({ children, currentPageName }) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center text-white font-medium">
-                    {user?.display_name?.[0]?.toUpperCase() || 'U'}
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center text-white font-medium overflow-hidden">
+                    {user?.avatar_url ? (
+                      <img src={user.avatar_url} alt={user.display_name} className="w-full h-full object-cover" />
+                    ) : (
+                      user?.display_name?.[0]?.toUpperCase() || 'U'
+                    )}
                   </div>
                 </button>
               </DropdownMenuTrigger>
@@ -285,8 +289,12 @@ export default function Layout({ children, currentPageName }) {
           onClick={() => requireAuth(() => navigate(createPageUrl('Library')))}
           className={`flex flex-col items-center gap-0.5 ${currentPageName === 'Library' ? 'text-purple-400' : textMuted}`}
         >
-          <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold">
-            {user?.display_name?.[0]?.toUpperCase() || 'U'}
+          <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center text-white text-xs font-bold overflow-hidden">
+            {user?.avatar_url ? (
+              <img src={user.avatar_url} alt={user.display_name} className="w-full h-full object-cover" />
+            ) : (
+              user?.display_name?.[0]?.toUpperCase() || 'U'
+            )}
           </div>
         </button>
       </nav>

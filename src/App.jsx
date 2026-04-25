@@ -34,11 +34,24 @@ const AuthenticatedApp = () => {
 
   // Dynamic Favicon Switcher
   useEffect(() => {
-    const favicon = document.querySelector('link[rel="icon"]');
-    if (favicon) {
-      favicon.href = `${import.meta.env.BASE_URL}logo-avvelux.png`;
+    const updateFavicon = (url) => {
+      const links = document.querySelectorAll('link[rel*="icon"]');
+      if (links.length > 0) {
+        links.forEach(link => link.href = url);
+      } else {
+        const link = document.createElement('link');
+        link.rel = 'icon';
+        link.href = url;
+        document.head.appendChild(link);
+      }
+    };
+
+    if (user?.avatar_url) {
+      updateFavicon(user.avatar_url);
+    } else {
+      updateFavicon(`${import.meta.env.BASE_URL}logo-avvelux.png`);
     }
-  }, []);
+  }, [user]);
 
   if (isLoadingAuth) {
     const videoSrc = theme === 'dark' 
