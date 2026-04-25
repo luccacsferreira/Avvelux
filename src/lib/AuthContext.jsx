@@ -269,8 +269,10 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const finalData = await attemptUpdate(data);
+      // Use original 'data' for local state to preserve fields like 'bio' 
+      // even if column is missing in DB
       setUser((prev) => {
-        const newUser = { ...prev, ...finalData };
+        const newUser = { ...prev, ...data };
         saveLocalProfile(user.id, newUser);
         return newUser;
       });
