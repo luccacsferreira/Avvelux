@@ -62,30 +62,30 @@ function ClipItem({ clip, isActive, isLight }) {
   return (
     <div className={`flex items-center justify-center w-full h-full relative overflow-hidden ${isLight ? 'bg-white' : 'bg-[#252525]'}`}>
       <div className="flex items-center justify-center gap-12 w-full h-full max-w-[1800px] px-12 relative">
-        {/* Metadata Overlay (Left Side) */}
-        <div className="flex-1 max-w-[400px] hidden xl:flex flex-col gap-5 self-start pt-12">
+        {/* Metadata Overlay (Left Side) - Balanced with Right Sidebar */}
+        <div className="flex-1 max-w-[420px] hidden xl:flex flex-col gap-6 self-start pt-16">
           <h2 className={`text-3xl font-bold leading-tight ${isLight ? 'text-black' : 'text-white'}`}>
             {clip.title}
           </h2>
 
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center text-white font-bold text-base shadow-lg shrink-0">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-lg shrink-0">
                 {clip.creator_name?.[0]}
               </div>
               <div className="flex flex-col overflow-hidden">
-                <span className={`font-bold text-base truncate ${isLight ? 'text-black' : 'text-white'}`}>{clip.creator_name}</span>
-                <span className="text-gray-500 text-[10px] truncate">@{clip.creator_name?.toLowerCase().replace(/\s+/g, '')}</span>
+                <span className={`font-bold text-lg truncate ${isLight ? 'text-black' : 'text-white'}`}>{clip.creator_name}</span>
+                <span className="text-gray-500 text-xs truncate">@{clip.creator_name?.toLowerCase().replace(/\s+/g, '')}</span>
               </div>
             </div>
-            <button className={`px-5 py-1.5 rounded-full text-xs transition-all shadow-md shrink-0 ${isLight ? 'bg-black text-white hover:bg-gray-800' : 'bg-white text-black hover:bg-gray-200'}`}>
+            <button className={`px-6 py-2 rounded-full font-bold transition-all shadow-md shrink-0 ${isLight ? 'bg-black text-white hover:bg-gray-800' : 'bg-white text-black hover:bg-gray-200'}`}>
               Subscribe
             </button>
           </div>
 
-          <div className="flex gap-3 items-start mt-2">
-            <div className={`flex-1 rounded-2xl p-4 flex flex-col gap-2 min-h-[180px] ${isLight ? 'bg-gray-100' : 'bg-white/5'}`}>
-              <p className={`text-[11px] font-black ${isLight ? 'text-black' : 'text-white'} opacity-70`}>
+          <div className="flex gap-4 items-start mt-2">
+            <div className={`flex-1 rounded-2xl p-6 flex flex-col gap-4 min-h-[280px] ${isLight ? 'bg-gray-100' : 'bg-white/5'}`}>
+              <p className={`text-xs font-bold ${isLight ? 'text-black' : 'text-white'}`}>
                 {clip.views || 0} views • {clip.created_at ? new Date(clip.created_at).toLocaleDateString() : 'Just now'}
               </p>
               <p className={`text-xs leading-relaxed ${isLight ? 'text-gray-800' : 'text-gray-200'}`}>
@@ -94,7 +94,7 @@ function ClipItem({ clip, isActive, isLight }) {
             </div>
             
             {/* Interaction Buttons next to description */}
-            <div className="flex flex-col gap-3 shrink-0">
+            <div className="flex flex-col gap-4 shrink-0 pt-2">
                 <button 
                   onClick={() => requireAuth(() => setLiked(!liked))}
                   className={`flex flex-col items-center gap-1 group transition-all ${liked ? 'text-red-500' : 'text-gray-400 hover:text-white'}`}
@@ -138,8 +138,8 @@ function ClipItem({ clip, isActive, isLight }) {
           />
         </div>
 
-        {/* AI & Notes Sidebar (Right Side) */}
-        <div className="flex-1 max-w-[400px] hidden xl:flex flex-col gap-6 h-[92%] pt-4">
+        {/* AI & Notes Sidebar (Right Side) - Balanced with Left Sidebar */}
+        <div className="flex-1 max-w-[420px] hidden xl:flex flex-col gap-6 h-[92%] pt-8">
           <div className="h-1/2 flex flex-col min-h-0">
             <VideoSidebar video={clip} isLight={isLight} />
           </div>

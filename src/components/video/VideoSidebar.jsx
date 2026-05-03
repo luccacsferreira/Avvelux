@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { GoogleGenAI } from "@google/genai";
-import { Send, FileText, Lightbulb } from 'lucide-react';
+import { Send, FileText, Lightbulb, PlayCircle } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 import { useAuth } from '@/lib/AuthContext';
 import { Note } from '@/api/entities';
 import { Button } from "@/components/ui/button";
@@ -59,28 +60,27 @@ export default function VideoSidebar({ video, isLight }) {
   };
 
   const streamAiResponse = useCallback((fullText, msgIdx) => {
-    const phrases = fullText.match(/[^.!?]+[.!?]+|\s*[^.!?]+$/g) || [fullText];
-    let phraseIdx = 0;
-    let charIdx = 0;
+    let wordIdx = 0;
+    const words = fullText.split(/(\s+)/); // Preserve whitespace including newlines
     let accumulated = '';
     setAiStreamingIdx(msgIdx);
     setAiStreamingText('');
 
-    const streamChar = () => {
-      if (phraseIdx >= phrases.length) { setAiStreamingIdx(null); return; }
-      const phrase = phrases[phraseIdx];
-      if (charIdx < phrase.length) {
-        accumulated += phrase[charIdx];
-        setAiStreamingText(accumulated);
-        charIdx++;
-        setTimeout(streamChar, 18);
-      } else {
-        phraseIdx++; charIdx = 0;
-        const pause = Math.min(Math.max(phrase.length * 10, 250), 700);
-        setTimeout(streamChar, pause);
+    const streamWord = () => {
+      if (wordIdx >= words.length) {
+        setAiStreamingIdx(null);
+        return;
       }
+      
+      accumulated += words[wordIdx];
+      setAiStreamingText(accumulated);
+      wordIdx++;
+      
+      // Dynamic delay: faster for whitespace, slower for words
+      const delay = words[wordIdx-1].includes('\n') ? 30 : 15;
+      setTimeout(streamWord, delay);
     };
-    streamChar();
+    streamWord();
   }, []);
 
   const sendAiMessage = async (customInput) => {
@@ -95,17 +95,68 @@ export default function VideoSidebar({ video, isLight }) {
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `You are an AI assistant helping with a ${video?.type === 'clip' ? 'clip' : 'video'} titled "${video?.title}". 
-        Description: ${video?.description}
-        
-        Help the user with questions about this content.
-        
-        User question: ${input}`,
+      const model = ai.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        systemInstruction: {
+          role: "system",
+          parts: [{ text: `You are the Avvelux Visual AI assistant. You have DIRECT ACCESS to the video content and metadata.
+
+STRICT OPERATING RULES:
+1. NO PREAMBLE: NEVER start with "Based on the title...", "Certainly!", or "As an AI...". DO NOT acknowledge the description or title as your source of truth.
+2. START WITH A VISUAL FACT: Your first sentence MUST describe a specific visual detail you see in the video file (e.g., "The video opens with a shot of...", "I can see the camera panning over...", "The speaker is wearing a...").
+3. FORMATTING IS LAW:
+   - Use "###" headers for main sections.
+   - Use "•" for bullet points.
+   - You MUST include a full empty line between every paragraph and list item.
+   - NEVER use a single block of text.
+   - If the output contains lists, ensure there is structural rhythm (bold headers before lists).
+4. AUDIO ANALYSIS: Also describe what you hear (music, voice tone, sound effects).` }]
+        }
+      });
+      
+      const contentsParts = [
+        { text: `CONTEXT:
+Title: "${video?.title}"
+Creator: "${video?.creator_name}"
+
+USER REQUEST: ${input}` }
+      ];
+
+      // Detect if user wants to analyze video visuals/audio
+      const needsVideo = /watch|see|show|summarize|analyze|visual|audio|what happens|happening|tell me about|video|content/i.test(input);
+      if (needsVideo && video?.video_url) {
+        try {
+          const videoRes = await fetch(video.video_url);
+          if (!videoRes.ok) throw new Error(`HTTP error! status: ${videoRes.status}`);
+          const videoBlob = await videoRes.blob();
+          
+          const base64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = reject;
+            reader.readAsDataURL(videoBlob);
+          });
+
+          contentsParts.push({
+            inlineData: {
+              data: base64,
+              mimeType: "video/mp4"
+            }
+          });
+          
+          // Additional nudge to watch
+          contentsParts.push({ text: "Watch the video above carefully and answer based ON THE VIDEO FOOTAGE, not the meta-tags." });
+        } catch (fetchErr) {
+          console.warn("Multimodal video fetch failed:", fetchErr);
+          contentsParts.push({ text: "\n\n(Note: I am experiencing a technical issue viewing the video file. I will proceed with a general analysis based on the title.)" });
+        }
+      }
+
+      const response = await model.generateContent({
+        contents: [{ role: 'user', parts: contentsParts }],
       });
 
-      const responseText = response.text;
+      const responseText = response.response.text();
       const assistantMsg = { role: 'assistant', content: responseText };
       setAiMessages(prev => {
         const next = [...prev, assistantMsg];
@@ -175,13 +226,22 @@ export default function VideoSidebar({ video, isLight }) {
                   
                   <div className="mt-4 space-y-2">
                     <button 
-                      onClick={() => sendAiMessage('Summarize this content')}
+                      onClick={() => sendAiMessage('Watch this video and summarize it for me.')}
+                      className={`w-full p-3 rounded-lg text-left text-sm flex items-center gap-2 ${
+                        isLight ? 'bg-white hover:bg-gray-50 text-black' : 'bg-[#1a1a1a] hover:bg-[#252525] text-white'
+                      }`}
+                    >
+                      <PlayCircle className={`w-4 h-4 ${isLight ? 'text-purple-600' : 'text-purple-400'}`} />
+                      Watch & Summarize
+                    </button>
+                    <button 
+                      onClick={() => sendAiMessage('Summarize the key points of this content.')}
                       className={`w-full p-3 rounded-lg text-left text-sm flex items-center gap-2 ${
                         isLight ? 'bg-white hover:bg-gray-50 text-black' : 'bg-[#1a1a1a] hover:bg-[#252525] text-white'
                       }`}
                     >
                       <FileText className={`w-4 h-4 ${isLight ? 'text-gray-600' : 'text-gray-400'}`} />
-                      Summarize this content
+                      Key points (Metadata)
                     </button>
                     <button 
                       onClick={() => sendAiMessage('What are related topics I should explore?')}
@@ -206,7 +266,12 @@ export default function VideoSidebar({ video, isLight }) {
                             ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white'
                             : isLight ? 'bg-white text-black' : 'bg-[#1a1a1a] text-white shadow-inner'
                         }`}>
-                          {content}{isStreaming && <span className="animate-pulse">▌</span>}
+                          {msg.role === 'user' ? content : (
+                            <div className="markdown-body max-w-none">
+                              <ReactMarkdown>{content}</ReactMarkdown>
+                            </div>
+                          )}
+                          {isStreaming && <span className="animate-pulse">▌</span>}
                         </div>
                       </div>
                     );

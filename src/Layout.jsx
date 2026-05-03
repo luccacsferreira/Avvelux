@@ -4,7 +4,7 @@ import { createPageUrl } from './utils';
 import { useAuth } from '@/lib/AuthContext';
 import { getInitialTheme } from '@/lib/theme';
 import { 
-  Home, Film, TrendingUp, Lightbulb, 
+  Home, Film, TrendingUp, Lightbulb, Shield,
   Library, Clock, FileText, ListVideo, Heart,
   Menu, Search, Upload, Crown,
   Settings, LogOut, User, Sun, Moon, Sliders,
@@ -257,6 +257,9 @@ export default function Layout({ children, currentPageName }) {
           {youItems.map((item) => (
             <NavLink key={item.page} {...item} />
           ))}
+
+          <div className={`pt-3 pb-1 ${textMuted} text-xs font-medium uppercase tracking-wider`}>Help & Policy</div>
+          <NavLink icon={Shield} label="Policies" page="Policies" />
         </nav>
 
         <div className={`p-4 border-t ${borderColor}`}>

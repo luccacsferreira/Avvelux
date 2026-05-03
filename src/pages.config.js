@@ -27,6 +27,7 @@ import Wishlists from './pages/Wishlists';
 import VideoPlayer from './pages/VideoPlayer';
 import ClipPlayer from './pages/ClipPlayer';
 import PostPlayer from './pages/PostPlayer';
+import Policies from './pages/Policies';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
@@ -63,6 +64,7 @@ export const pagesConfig = {
     'VideoPlayer': VideoPlayer,
     'ClipPlayer': ClipPlayer,
     'PostPlayer': PostPlayer,
+    'Policies': Policies,
     'Login': Login,
     'Register': Register,
     'ForgotPassword': ForgotPassword,

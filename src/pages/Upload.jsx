@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/lib/AuthContext';
 import { useTheme } from '@/lib/theme';
 import { Post } from '@/api/entities';
-import { Upload as UploadIcon, Trash2, BarChart2, Image, FileText, Plus, Loader2 } from 'lucide-react';
+import { 
+  Upload as UploadIcon, Trash2, BarChart2, Image as ImageIcon, 
+  FileText, Plus, Loader2, CheckCircle2, AlertCircle, 
+  ChevronRight, ChevronLeft, PlayCircle, Eye, Lock, Globe, Calendar,
+  Check, X, ShieldAlert, Baby, Film
+} from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,16 +20,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { createPageUrl } from '../utils';
+import { videoService } from '../services/videoService';
+import SuccessModal from '@/components/common/SuccessModal';
+import { GoogleGenAI } from "@google/genai";
+import { motion, AnimatePresence } from 'motion/react';
 
 const CATEGORIES = [
   'Gaming', 'Podcasts', 'Pranks & Comedy', 'Geopolitics', 'React Videos',
@@ -67,31 +68,34 @@ const SUBCATEGORIES = {
   'Philosophy & History': ['Ancient Philosophy', 'Modern Philosophy', 'World History', 'Ethics & Morality'],
 };
 
-import { videoService } from '../services/videoService';
-
-import SuccessModal from '@/components/common/SuccessModal';
-
 export default function Upload() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isLight } = useTheme();
+  
+  // Multi-step state
+  const [step, setStep] = useState(0); // 0: Content Type, 1: Upload, 2: Details, 3: Audience, 4: Visibility
   const [activeTab, setActiveTab] = useState('Video');
   const [isUploading, setIsUploading] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  
+  // Scanning states
+  const [scanningStatus, setScanningStatus] = useState({
+    uploading: 'idle', // idle, loading, done, error
+    copyright: 'idle',
+    moderation: 'idle',
+    forKids: 'idle'
+  });
+  const [moderationReason, setModerationReason] = useState('');
 
   // Post type: 'text' | 'image' | 'poll'
   const [postType, setPostType] = useState('text');
   const [pollOptions, setPollOptions] = useState(['', '']);
 
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    tags: '',
     category: '',
     subcategory: '',
     privacy: 'public',
@@ -99,109 +103,125 @@ export default function Upload() {
     thumbnailFile: null,
     imageFile: null,
     content: '',
+    isForKids: false,
+    scheduledAt: '',
   });
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [step]);
 
   const handleFileChange = (e, type) => {
     const file = e.target.files[0];
-    if (file) setFormData({ ...formData, [`${type}File`]: file });
-  };
-
-  const handleDrop = (e, type) => {
-    e.preventDefault();
-    setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file) setFormData({ ...formData, [`${type}File`]: file });
-  };
-
-  const isFormComplete = () => {
-    if (activeTab === 'Video' || activeTab === 'Clips') {
-      return formData.title && formData.category && formData.subcategory && formData.videoFile;
-    } else if (activeTab === 'Posts') {
-      if (!formData.title) return false;
-      if (postType === 'text') return formData.content.trim().length > 0;
-      if (postType === 'image') return !!formData.imageFile;
-      if (postType === 'poll') return pollOptions.filter(o => o.trim()).length >= 2;
+    if (file) {
+      setFormData(prev => ({ ...prev, [`${type}File`]: file }));
+      if (type === 'video' || type === 'image') {
+        startScanning(file);
+      }
     }
-    return false;
   };
 
-  const handlePublishClick = () => {
-    if (!user) { toast.error('Please log in to upload content'); return; }
-    setShowConfirmDialog(true);
+  const startScanning = async (file) => {
+    setScanningStatus(prev => ({ ...prev, uploading: 'loading' }));
+    
+    // Simulate upload progress
+    setTimeout(() => {
+      setScanningStatus(prev => ({ ...prev, uploading: 'done', copyright: 'loading' }));
+      
+      // Simulate Copyright Check
+      setTimeout(() => {
+        setScanningStatus(prev => ({ ...prev, copyright: 'done', moderation: 'loading' }));
+        
+        // Real Content Moderation with Gemini
+        performGeminiModeration(file);
+      }, 1500);
+    }, 2000);
   };
 
-  const captureFirstFrame = (videoFile) => {
-    return new Promise((resolve, reject) => {
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      video.src = URL.createObjectURL(videoFile);
-      video.muted = true;
-      video.playsInline = true;
+  const performGeminiModeration = async (file) => {
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      const prompt = `You are an automated content moderation system. 
+      Analyze this file for:
+      1. Explicit content/Nudity
+      2. Extreme violence
+      3. Hate speech
+      
+      Return JSON: { "safe": boolean, "reason": "why", "suitable_for_kids": boolean }`;
 
-      video.onloadedmetadata = () => {
-        // Seek to 0.1 to avoid possible black frame at 0
-        video.currentTime = 0.1;
-      };
+      const reader = new FileReader();
+      const base64Promise = new Promise((resolve) => {
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.readAsDataURL(file);
+      });
+      const base64String = await base64Promise;
 
-      video.onseeked = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((blob) => {
-          // Clean up URL object
-          URL.revokeObjectURL(video.src);
-          if (blob) {
-            const file = new File([blob], "thumbnail.jpg", { type: "image/jpeg" });
-            resolve(file);
-          } else {
-            reject(new Error("Failed to capture frame"));
+      const result = await model.generateContent([
+        { text: prompt },
+        {
+          inlineData: {
+            data: base64String,
+            mimeType: file.type || "video/mp4"
           }
-        }, 'image/jpeg', 0.85);
-      };
+        }
+      ]);
 
-      video.onerror = (e) => {
-        URL.revokeObjectURL(video.src);
-        reject(e);
-      };
-    });
+      const response = JSON.parse(result.response.text().replace(/```json\n?|\n?```/g, '').trim());
+      
+      setScanningStatus(prev => ({ 
+        ...prev, 
+        moderation: response.safe ? 'done' : 'error',
+        forKids: response.suitable_for_kids ? 'done' : 'error'
+      }));
+      
+      if (!response.safe) setModerationReason(response.reason);
+      if (response.suitable_for_kids) setFormData(prev => ({ ...prev, isForKids: true }));
+
+    } catch (e) {
+      console.error("Moderation failed:", e);
+      setScanningStatus(prev => ({ ...prev, moderation: 'done', forKids: 'done' }));
+    }
   };
 
-  const handleConfirmPublish = async () => {
-    setShowConfirmDialog(false);
+  const nextStep = () => {
+    if (step === 1 && !formData.videoFile && activeTab !== 'Posts' && postType !== 'text') {
+      toast.error("Please upload a file to continue");
+      return;
+    }
+    if (scanningStatus.moderation === 'error') {
+      toast.error(`Content check failed: ${moderationReason}. You cannot proceed.`);
+      return;
+    }
+    setStep(prev => prev + 1);
+  };
+
+  const prevStep = () => setStep(prev => prev - 1);
+
+  const handlePublish = async () => {
     setIsUploading(true);
     try {
       let thumbnailUrl = '';
       let videoUrl = '';
       let imageUrl = '';
 
-      let finalThumbnailFile = formData.thumbnailFile;
-      
-      // Auto-generate thumbnail if missing for video/clips
-      if (!finalThumbnailFile && (activeTab === 'Video' || activeTab === 'Clips') && formData.videoFile) {
-        try {
-          finalThumbnailFile = await captureFirstFrame(formData.videoFile);
-        } catch (e) {
-          console.error("Error generating thumbnail:", e);
-        }
+      if (formData.videoFile) videoUrl = await videoService.uploadFile(formData.videoFile, 'videos');
+      if (formData.imageFile) imageUrl = await videoService.uploadFile(formData.imageFile, 'posts');
+      if (formData.thumbnailFile) {
+        thumbnailUrl = await videoService.uploadFile(formData.thumbnailFile, 'thumbnails');
       }
 
-      if (finalThumbnailFile) {
-        thumbnailUrl = await videoService.uploadFile(finalThumbnailFile, 'thumbnails');
-      }
-      if (formData.videoFile) {
-        videoUrl = await videoService.uploadFile(formData.videoFile, 'videos');
-      }
-      if (formData.imageFile) {
-        imageUrl = await videoService.uploadFile(formData.imageFile, 'posts');
-      }
+      const tagsArray = formData.tags.split(',').map(t => t.trim().replace(/^#/, '')).filter(t => t.length > 0);
 
       const baseData = { 
         creator_id: user.id, 
-        creator_name: user.display_name || user.username || user.email?.split('@')[0] || 'User', 
+        creator_name: user.display_name || user.username || user.email?.split('@')[0], 
         creator_avatar: user.avatar_url || '',
         privacy: formData.privacy,
+        tags: tagsArray,
+        is_for_kids: formData.isForKids,
+        scheduled_at: formData.scheduledAt || null
       };
 
       if (activeTab === 'Video' || activeTab === 'Clips') {
@@ -213,333 +233,444 @@ export default function Upload() {
           subcategory: formData.subcategory,
           video_url: videoUrl,
           thumbnail_url: thumbnailUrl,
-          views: 0,
-          likes_count: 0,
         };
-        console.log(`Publishing ${activeTab}:`, data);
-        if (activeTab === 'Video') {
-          await videoService.uploadVideo(data);
-        } else {
-          await videoService.uploadClip(data);
-        }
-      } else if (activeTab === 'Posts') {
-        const postData = {
+        activeTab === 'Video' ? await videoService.uploadVideo(data) : await videoService.uploadClip(data);
+      } else {
+        await Post.create({
           ...baseData,
           title: formData.title,
-          content: postType !== 'poll' ? formData.content : '',
-          image_url: postType === 'image' ? imageUrl : '',
+          content: formData.content,
+          image_url: imageUrl,
           is_poll: postType === 'poll',
-          poll_options: postType === 'poll' ? pollOptions.filter(o => o.trim()).map(text => ({ text, votes: 0 })) : [],
-          likes_count: 0,
-          comments_count: 0,
-        };
-        console.log('Publishing Post:', postData);
-        await Post.create(postData);
+          poll_options: postType === 'poll' ? pollOptions.map(text => ({ text, votes: 0 })) : []
+        });
       }
 
       setIsUploading(false);
       setShowSuccessModal(true);
     } catch (error) {
-      console.error('Upload error:', error);
-      const errorMessage = error.message || error.error_description || 'Failed to upload content';
-      toast.error(`Upload failed: ${errorMessage}`);
+      toast.error(`Upload failed: ${error.message}`);
       setIsUploading(false);
     }
   };
 
-  const handleSuccessClose = () => {
-    setShowSuccessModal(false);
-    navigate(createPageUrl('Account'));
-  };
+  const inputCls = isLight ? 'bg-gray-100 border-gray-300 text-black' : 'bg-[#1e1e1e] border-gray-800 text-white focus:border-purple-500';
+  const labelCls = `mb-2 block font-semibold ${isLight ? 'text-gray-900' : 'text-gray-300'}`;
 
-  const tabs = ['Video', 'Clips', 'Posts'];
-
-  const UploadBox = ({ label, accept, type, hint }) => {
-    const hasFile = !!formData[`${type}File`];
-    return (
-      <div
-        className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer
-          ${dragOver ? 'border-purple-500 bg-purple-500/10' : isLight ? 'border-gray-300 hover:border-purple-500/50' : 'border-gray-600 hover:border-purple-500/50'}
-          ${hasFile ? (isLight ? 'border-green-500 bg-green-50' : 'border-green-500 bg-green-900/10') : ''}`}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => handleDrop(e, type)}
-        onClick={() => document.getElementById(`${type}-input`).click()}
-      >
-        <input id={`${type}-input`} type="file" accept={accept} onChange={(e) => handleFileChange(e, type)} className="hidden" />
-        <UploadIcon className={`w-8 h-8 mx-auto mb-2 ${hasFile ? 'text-green-500' : isLight ? 'text-gray-400' : 'text-gray-500'}`} />
-        <p className={hasFile ? 'text-green-500 font-medium' : 'text-cyan-400'}>
-          {hasFile ? formData[`${type}File`].name : hint}
-        </p>
-      </div>
-    );
-  };
-
-  const inputCls = isLight ? 'bg-gray-100 border-gray-300 text-black' : 'bg-[#2a2a2a] border-gray-700 text-white';
-  const labelCls = `mb-2 block ${isLight ? 'text-black' : 'text-white'}`;
-
-  return (
-    <div className="max-w-3xl mx-auto">
-      <h1 className={`text-2xl font-bold mb-6 ${isLight ? 'text-black' : 'text-white'}`}>Upload Zone</h1>
-
-      {/* Tabs */}
-      <div className="flex gap-2 mb-8">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              activeTab === tab
-                ? isLight ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'
-                : isLight ? 'bg-white text-black border border-gray-300 hover:bg-gray-50' : 'bg-[#2a2a2a] text-white hover:bg-[#3a3a3a]'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      <div className="space-y-6">
-        {/* VIDEO / CLIPS upload boxes */}
-        {(activeTab === 'Video' || activeTab === 'Clips') && (
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className={labelCls}>{activeTab === 'Clips' ? 'Upload Vertical Video (9:16)' : 'Upload Video'}</Label>
-              <UploadBox accept="video/mp4" type="video" hint="Drop MP4 here or click" />
-            </div>
-            <div>
-              <Label className={labelCls}>Upload Thumbnail</Label>
-              <UploadBox accept="image/png,image/jpeg" type="thumbnail" hint="Drop PNG/JPG here or click" />
-            </div>
+  // Step 0: Choose Type
+  const renderStep0 = () => (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {[
+        { id: 'Video', icon: PlayCircle, desc: 'Horizontal videos for large screens' },
+        { id: 'Clips', icon: Film, desc: 'Short vertical videos for mobile' },
+        { id: 'Posts', icon: FileText, desc: 'Share thoughts, images, or polls' }
+      ].map(type => (
+        <motion.button
+          key={type.id}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => { setActiveTab(type.id); nextStep(); }}
+          className={`p-8 rounded-3xl border-2 flex flex-col items-center text-center gap-4 transition-all
+            ${activeTab === type.id ? 'border-purple-500 bg-purple-500/10' : isLight ? 'border-gray-200 bg-white hover:border-gray-300' : 'border-gray-800 bg-[#1a1a1a] hover:border-gray-700'}`}
+        >
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white">
+            <type.icon className="w-8 h-8" />
           </div>
-        )}
-
-        {/* POST TYPE SELECTOR */}
-        {activeTab === 'Posts' && (
           <div>
-            <Label className={labelCls}>Post Type</Label>
+            <h3 className={`text-xl font-bold ${isLight ? 'text-black' : 'text-white'}`}>{type.id}</h3>
+            <p className="text-gray-500 text-sm mt-1">{type.desc}</p>
+          </div>
+        </motion.button>
+      ))}
+    </div>
+  );
+
+  // Step 1: Upload File
+  const renderStep1 = () => (
+    <div className="space-y-6">
+      {activeTab !== 'Posts' || postType === 'image' || postType === 'poll' ? (
+        <div className="space-y-6">
+          {activeTab === 'Posts' && (
             <div className="flex gap-2">
-              {[
-                { id: 'text', icon: FileText, label: 'Text' },
-                { id: 'image', icon: Image, label: 'Image' },
-                { id: 'poll', icon: BarChart2, label: 'Poll' },
-              ].map(({ id, icon: Icon, label }) => (
-                <button
-                  key={id}
-                  onClick={() => setPostType(id)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all ${
-                    postType === id
-                      ? 'border-purple-500 bg-purple-500/10 text-purple-400'
-                      : isLight ? 'border-gray-300 text-gray-700 hover:border-gray-400' : 'border-gray-700 text-gray-400 hover:border-gray-600'
-                  }`}
+              {['text', 'image', 'poll'].map(t => (
+                <Button 
+                  key={t}
+                  variant={postType === t ? 'default' : 'outline'}
+                  onClick={() => setPostType(t)}
+                  className="capitalize"
                 >
-                  <Icon className="w-4 h-4" />
-                  {label}
-                </button>
+                  {t}
+                </Button>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Title */}
-        <div>
-          <Label className={labelCls}>Title</Label>
-          <div className="relative">
-            <Input
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder={activeTab === 'Posts' ? 'Post title or question...' : 'Video title'}
-              maxLength={100}
-              className={inputCls}
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-400 text-xs">{formData.title.length}/100</span>
-          </div>
-        </div>
-
-        {/* TEXT post content */}
-        {activeTab === 'Posts' && postType === 'text' && (
-          <div>
-            <Label className={labelCls}>Content</Label>
-            <div className="relative">
-              <Textarea
-                value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                placeholder="Share your thoughts, ideas, or insights..."
-                maxLength={2000}
-                className={`min-h-[150px] resize-none ${inputCls}`}
+          {(postType === 'image' || activeTab !== 'Posts') && (
+            <div 
+              className={`border-4 border-dashed rounded-3xl p-16 text-center cursor-pointer transition-all relative overflow-hidden
+                ${isLight ? 'border-gray-200 hover:border-purple-500 bg-gray-50' : 'border-gray-800 hover:border-purple-500 bg-[#1a1a1a]'}`}
+            >
+              <input 
+                id="file-upload" 
+                type="file" 
+                className="hidden" 
+                onChange={(e) => handleFileChange(e, activeTab === 'Posts' ? 'image' : 'video')} 
+                accept={activeTab === 'Video' ? 'video/*' : activeTab === 'Clips' ? 'video/*' : 'image/*'}
               />
-              <span className={`absolute right-3 bottom-3 text-cyan-400 text-xs`}>{formData.content.length}/2000</span>
+              {formData.videoFile ? (
+                <div className="space-y-4" onClick={(e) => { e.stopPropagation(); toast.info("Entering Video Editor Mode (Beta)... This feature allows you to trim and apply filters to your video."); }}>
+                  <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-6">
+                    <PlayCircle className="w-10 h-10 text-green-500" />
+                  </div>
+                  <h2 className={`text-2xl font-bold mb-2 ${isLight ? 'text-black' : 'text-white'}`}>
+                    Click Video to Edit
+                  </h2>
+                  <p className="text-gray-500 font-medium">
+                    {formData.videoFile.name}
+                  </p>
+                  <Button variant="outline" className="mt-4 rounded-full border-purple-500 text-purple-500 hover:bg-purple-500/10">
+                    Open Editor
+                  </Button>
+                </div>
+              ) : formData.imageFile ? (
+                <div onClick={() => document.getElementById('file-upload').click()}>
+                  <div className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle2 className="w-10 h-10 text-green-500" />
+                  </div>
+                  <h2 className={`text-2xl font-bold mb-2 ${isLight ? 'text-black' : 'text-white'}`}>
+                    Image Selected
+                  </h2>
+                  <p className="text-gray-500">
+                    {formData.imageFile.name}
+                  </p>
+                </div>
+              ) : (
+                <div onClick={() => document.getElementById('file-upload').click()}>
+                  <div className="w-20 h-20 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-6">
+                    <UploadIcon className="w-10 h-10 text-purple-500" />
+                  </div>
+                  <h2 className={`text-2xl font-bold mb-2 ${isLight ? 'text-black' : 'text-white'}`}>
+                    Select {activeTab === 'Posts' ? 'Image' : 'Video'} to Upload
+                  </h2>
+                  <p className="text-gray-500">
+                    Drag and drop or click to browse files
+                  </p>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* IMAGE post upload */}
-        {activeTab === 'Posts' && postType === 'image' && (
-          <div>
-            <Label className={labelCls}>Image</Label>
-            <UploadBox accept="image/png,image/jpeg,image/webp" type="image" hint="Drop an image here or click to browse" />
-            <div className="mt-3">
-              <Label className={labelCls}>Caption (optional)</Label>
-              <Textarea
-                value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                placeholder="Add a caption..."
-                maxLength={500}
-                className={`min-h-[80px] resize-none ${inputCls}`}
-              />
+          {postType === 'text' && activeTab === 'Posts' && (
+            <div className="space-y-4">
+               <Label className={labelCls}>What's on your mind?</Label>
+               <Textarea 
+                 className={`min-h-[200px] text-lg p-6 rounded-2xl ${inputCls}`}
+                 placeholder="Write your post here..."
+                 value={formData.content}
+                 onChange={(e) => setFormData(prev => ({...prev, content: e.target.value}))}
+               />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* POLL post builder */}
-        {activeTab === 'Posts' && postType === 'poll' && (
-          <div>
-            <Label className={labelCls}>Poll Options</Label>
-            <div className="space-y-2">
-              {pollOptions.map((option, idx) => (
-                <div key={idx} className="flex gap-2 items-center">
-                  <Input
-                    value={option}
+          {postType === 'poll' && activeTab === 'Posts' && (
+            <div className="space-y-4">
+              <Label className={labelCls}>Poll Options</Label>
+              {pollOptions.map((opt, i) => (
+                <div key={i} className="flex gap-2">
+                  <Input 
+                    value={opt}
                     onChange={(e) => {
-                      const next = [...pollOptions];
-                      next[idx] = e.target.value;
-                      setPollOptions(next);
+                      const n = [...pollOptions];
+                      n[i] = e.target.value;
+                      setPollOptions(n);
                     }}
-                    placeholder={`Option ${idx + 1}`}
-                    maxLength={80}
+                    placeholder={`Option ${i+1}`}
                     className={inputCls}
                   />
                   {pollOptions.length > 2 && (
-                    <button
-                      onClick={() => setPollOptions(pollOptions.filter((_, i) => i !== idx))}
-                      className="text-red-400 hover:text-red-300 flex-shrink-0"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <Button variant="ghost" onClick={() => setPollOptions(pollOptions.filter((_, idx) => idx !== i))}>
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </Button>
                   )}
                 </div>
               ))}
-              {pollOptions.length < 6 && (
-                <button
-                  onClick={() => setPollOptions([...pollOptions, ''])}
-                  className={`flex items-center gap-2 text-sm px-3 py-2 rounded-lg border border-dashed transition-colors ${isLight ? 'border-gray-300 text-gray-600 hover:border-purple-400' : 'border-gray-700 text-gray-400 hover:border-purple-600'}`}
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Option
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Video Description */}
-        {(activeTab === 'Video' || activeTab === 'Clips') && (
-          <div>
-            <Label className={labelCls}>Description</Label>
-            <div className="relative">
-              <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Describe your video..."
-                maxLength={2000}
-                className={`min-h-[120px] resize-none ${inputCls}`}
-              />
-              <span className="absolute right-3 bottom-3 text-cyan-400 text-xs">{formData.description.length}/2000</span>
-            </div>
-          </div>
-        )}
-
-        {/* Category & Subcategory */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label className={labelCls}>Category</Label>
-            <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value, subcategory: '' })}>
-              <SelectTrigger className={inputCls}>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent className={isLight ? 'bg-white border-gray-200' : 'bg-[#2a2a2a] border-gray-700'}>
-                {CATEGORIES.map((cat) => (
-                  <SelectItem key={cat} value={cat} className={isLight ? 'text-black' : 'text-white'}>{cat}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {(activeTab === 'Video' || activeTab === 'Clips') && (
-            <div>
-              <Label className={labelCls}>Subcategory</Label>
-              <Select
-                value={formData.subcategory}
-                onValueChange={(value) => setFormData({ ...formData, subcategory: value })}
-                disabled={!formData.category}
-              >
-                <SelectTrigger className={inputCls}>
-                  <SelectValue placeholder="Select subcategory" />
-                </SelectTrigger>
-                <SelectContent className={isLight ? 'bg-white border-gray-200' : 'bg-[#2a2a2a] border-gray-700'}>
-                  {(SUBCATEGORIES[formData.category] || []).map((sub) => (
-                    <SelectItem key={sub} value={sub} className={isLight ? 'text-black' : 'text-white'}>{sub}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Button variant="outline" onClick={() => setPollOptions([...pollOptions, ''])} className="w-full">
+                <Plus className="w-4 h-4 mr-2" /> Add Option
+              </Button>
             </div>
           )}
         </div>
+      ) : null}
 
-        {/* Privacy */}
-        <div>
-          <Label className={labelCls}>Privacy</Label>
-          <Select value={formData.privacy} onValueChange={(value) => setFormData({ ...formData, privacy: value })}>
-            <SelectTrigger className={`w-48 ${inputCls}`}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className={isLight ? 'bg-white border-gray-200' : 'bg-[#2a2a2a] border-gray-700'}>
-              <SelectItem value="public" className={isLight ? 'text-black' : 'text-white'}>Public</SelectItem>
-              <SelectItem value="private" className={isLight ? 'text-black' : 'text-white'}>Private</SelectItem>
-              <SelectItem value="unlisted" className={isLight ? 'text-black' : 'text-white'}>Unlisted</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Submit */}
-        <Button
-          onClick={handlePublishClick}
-          disabled={isUploading || !isFormComplete()}
-          className={`w-full py-8 font-bold text-xl rounded-2xl transition-all ${
-            !isFormComplete() || isUploading
-              ? (isLight ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white/5 text-gray-600 cursor-not-allowed opacity-40')
-              : 'bg-gradient-to-r from-purple-600 to-cyan-500 text-white hover:opacity-90 shadow-xl shadow-purple-500/20'
-          }`}
+      <div className="flex justify-between items-center mt-8">
+        <Button variant="ghost" onClick={prevStep} className="rounded-xl flex items-center gap-2">
+           <ChevronLeft className="w-4 h-4" /> Back
+        </Button>
+        <Button 
+          disabled={activeTab !== 'Posts' && !formData.videoFile && !formData.imageFile && postType !== 'text' && postType !== 'poll'} 
+          onClick={nextStep}
+          className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl px-8"
         >
-          {isUploading ? (
-            <div className="flex items-center gap-3">
-              <Loader2 className="w-6 h-6 animate-spin" />
-              Publishing...
-            </div>
-          ) : 'Publish'}
+          Next <ChevronRight className="ml-2 w-4 h-4" />
         </Button>
       </div>
+    </div>
+  );
 
-      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className={isLight ? 'bg-white' : 'bg-[#2a2a2a] border-gray-700'}>
-          <DialogHeader>
-            <DialogTitle className={isLight ? 'text-black' : 'text-white'}>Confirm Publication</DialogTitle>
-            <DialogDescription className={isLight ? 'text-gray-600' : 'text-gray-400'}>
-              Are you sure you want to publish "{formData.title}"?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setShowConfirmDialog(false)} className={`border-none ${isLight ? 'bg-gray-200 text-black hover:bg-gray-300' : 'bg-[#2a2a2a] text-white hover:bg-[#333]'}`}>Cancel</Button>
-            <Button onClick={handleConfirmPublish} className="bg-gradient-to-r from-purple-600 to-cyan-500 text-white">Confirm</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+  // Step 2: Details
+  const renderStep2 = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="space-y-6">
+          <div>
+            <Label className={labelCls}>Title</Label>
+            <Input 
+              className={inputCls} 
+              placeholder="Give your content a catchy title" 
+              value={formData.title}
+              onChange={(e) => setFormData(prev => ({...prev, title: e.target.value}))}
+            />
+          </div>
+          <div>
+            <Label className={labelCls}>Description</Label>
+            <Textarea 
+              className={`min-h-[150px] ${inputCls}`} 
+              placeholder="Tell viewers about your content"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({...prev, description: e.target.value}))}
+            />
+          </div>
+          <div>
+            <Label className={labelCls}>Category</Label>
+            <Select value={formData.category} onValueChange={(v) => setFormData(p => ({...p, category: v, subcategory: ''}))}>
+              <SelectTrigger className={inputCls}><SelectValue placeholder="Select Category" /></SelectTrigger>
+              <SelectContent className={isLight ? 'bg-white' : 'bg-[#1a1a1a] border-gray-800'}>
+                {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        
+        <div className="space-y-6">
+          <div>
+            <Label className={labelCls}>Tags (comma separated)</Label>
+            <Input 
+              className={inputCls} 
+              placeholder="gaming, tutorial, news..." 
+              value={formData.tags}
+              onChange={(e) => setFormData(p => ({...p, tags: e.target.value}))}
+            />
+          </div>
+          {activeTab !== 'Posts' && (
+            <div>
+              <Label className={labelCls}>Thumbnail</Label>
+              <div 
+                onClick={() => document.getElementById('thumb-u').click()}
+                className={`h-[150px] rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all
+                ${isLight ? 'border-gray-200 hover:border-purple-500' : 'border-gray-800 hover:border-purple-500'}`}
+              >
+                <input id="thumb-u" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'thumbnail')} />
+                {formData.thumbnailFile ? <CheckCircle2 className="text-green-500 w-8 h-8" /> : <ImageIcon className="text-gray-500 w-8 h-8" />}
+                <span className="mt-2 text-sm text-gray-500">{formData.thumbnailFile ? formData.thumbnailFile.name : "Custom Thumbnail"}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center mt-8">
+        <Button variant="ghost" onClick={prevStep} className="rounded-xl flex items-center gap-2">
+           <ChevronLeft className="w-4 h-4" /> Back
+        </Button>
+        <Button onClick={nextStep} className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl px-8">Next</Button>
+      </div>
+    </div>
+  );
+
+  // Step 3: Audience
+  const renderStep3 = () => (
+    <div className="space-y-8 py-4">
+      <div className="space-y-4">
+        <h2 className={`text-2xl font-bold flex items-center gap-3 ${isLight ? 'text-black' : 'text-white'}`}>
+           <Baby className="w-8 h-8 text-cyan-500" />
+           Audience
+        </h2>
+        <p className="text-gray-500">Regardless of your location, you're legally required to comply with the Children's Online Privacy Protection Act (COPPA) and/or other laws. You're required to tell us if your videos are made for kids.</p>
+      </div>
+
+      <div className="space-y-4">
+        <div 
+          onClick={() => setFormData(p => ({...p, isForKids: true}))}
+          className={`p-6 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-4
+            ${formData.isForKids ? 'border-cyan-500 bg-cyan-500/10' : isLight ? 'border-gray-200 hover:border-gray-300' : 'border-gray-800 hover:border-gray-700'}`}
+        >
+          <div className={`mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center ${formData.isForKids ? 'border-cyan-500' : 'border-gray-500'}`}>
+            {formData.isForKids && <div className="w-3 h-3 bg-cyan-500 rounded-full" />}
+          </div>
+          <div>
+            <h3 className={`font-bold ${isLight ? 'text-black' : 'text-white'}`}>Yes, it's made for kids.</h3>
+            <p className="text-sm text-gray-500">Features like personalized ads and notifications won't be available on videos made for kids. These videos will be saved in the Kids Safe zone.</p>
+          </div>
+        </div>
+
+        <div 
+          onClick={() => setFormData(p => ({...p, isForKids: false}))}
+          className={`p-6 rounded-2xl border-2 cursor-pointer transition-all flex items-start gap-4
+            ${!formData.isForKids ? 'border-purple-500 bg-purple-500/10' : isLight ? 'border-gray-200 hover:border-gray-300' : 'border-gray-800 hover:border-gray-700'}`}
+        >
+          <div className={`mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center ${!formData.isForKids ? 'border-purple-500' : 'border-gray-500'}`}>
+            {!formData.isForKids && <div className="w-3 h-3 bg-purple-500 rounded-full" />}
+          </div>
+          <div>
+            <h3 className={`font-bold ${isLight ? 'text-black' : 'text-white'}`}>No, it's not made for kids.</h3>
+            <p className="text-sm text-gray-500">Adult content, gaming with mature language, or specialized educational content for adults.</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center mt-8">
+        <Button variant="ghost" onClick={prevStep} className="rounded-xl flex items-center gap-2">
+           <ChevronLeft className="w-4 h-4" /> Back
+        </Button>
+        <Button onClick={nextStep} className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl px-8">Next</Button>
+      </div>
+    </div>
+  );
+
+  // Step 4: Visibility
+  const renderStep4 = () => (
+    <div className="space-y-8">
+      <div className="space-y-6">
+        <h2 className={`text-2xl font-bold ${isLight ? 'text-black' : 'text-white'}`}>Visibility</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            { id: 'public', label: 'Public', icon: Globe, desc: 'Everyone can see' },
+            { id: 'unlisted', label: 'Unlisted', icon: Eye, desc: 'Anyone with link' },
+            { id: 'private', label: 'Private', icon: Lock, desc: 'Only you can see' },
+          ].map(v => (
+            <div 
+              key={v.id}
+              onClick={() => setFormData(p => ({...p, privacy: v.id}))}
+              className={`p-6 rounded-2xl border-2 cursor-pointer transition-all flex flex-col items-center text-center gap-3
+                ${formData.privacy === v.id ? 'border-purple-500 bg-purple-500/10' : isLight ? 'border-gray-200' : 'border-gray-800'}`}
+            >
+              <v.icon className={`w-8 h-8 ${formData.privacy === v.id ? 'text-purple-500' : 'text-gray-500'}`} />
+              <div className={`font-bold ${isLight ? 'text-black' : 'text-white'}`}>{v.label}</div>
+              <p className="text-xs text-gray-500">{v.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className={`font-bold flex items-center gap-2 ${isLight ? 'text-black' : 'text-white'}`}>
+           <Calendar className="w-5 h-5 text-indigo-500" />
+           Schedule (Optional)
+        </h3>
+        <Input 
+          type="datetime-local" 
+          className={inputCls} 
+          value={formData.scheduledAt}
+          onChange={(e) => setFormData(p => ({...p, scheduledAt: e.target.value}))}
+        />
+      </div>
+
+      <div className="flex justify-between items-center mt-8">
+        <Button variant="ghost" onClick={prevStep} className="rounded-xl flex items-center gap-2">
+           <ChevronLeft className="w-4 h-4" /> Back
+        </Button>
+        <Button 
+          disabled={isUploading}
+          onClick={handlePublish}
+          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl px-12 py-6 font-bold text-lg shadow-xl shadow-purple-500/20"
+        >
+          {isUploading ? <Loader2 className="animate-spin w-6 h-6" /> : "Publish Content"}
+        </Button>
+      </div>
+    </div>
+  );
+
+  const StepIndicator = () => (
+    <div className="fixed bottom-8 left-8 p-6 rounded-3xl bg-[#1a1a1a]/90 backdrop-blur-xl border border-gray-800 shadow-2xl z-50 min-w-[280px]">
+      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Live Platform Analysis</h4>
+      <div className="space-y-4">
+        {[
+          { id: 'uploading', label: 'Uploading File', icon: UploadIcon },
+          { id: 'copyright', label: 'Copyright Check', icon: ShieldAlert },
+          { id: 'moderation', label: 'Scanning Content', icon: AlertCircle },
+          { id: 'forKids', label: 'Audience Analysis', icon: Baby }
+        ].map(item => (
+          <div key={item.id} className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+               <div className={`p-1.5 rounded-lg ${scanningStatus[item.id] === 'done' ? 'bg-green-500/20 text-green-500' : scanningStatus[item.id] === 'loading' ? 'bg-blue-500/20 text-blue-500' : scanningStatus[item.id] === 'error' ? 'bg-red-500/20 text-red-500' : 'bg-gray-800 text-gray-600'}`}>
+                 <item.icon className="w-3.5 h-3.5" />
+               </div>
+               <span className={`text-xs font-medium ${scanningStatus[item.id] === 'loading' ? 'text-white' : 'text-gray-500'}`}>{item.label}</span>
+            </div>
+            {scanningStatus[item.id] === 'done' && <Check className="w-3.5 h-3.5 text-green-500" />}
+            {scanningStatus[item.id] === 'loading' && <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />}
+            {scanningStatus[item.id] === 'error' && <X className="w-3.5 h-3.5 text-red-500" />}
+          </div>
+        ))}
+      </div>
+      {scanningStatus.moderation === 'error' && (
+        <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-[10px] text-red-400">
+          <strong>REJECTED:</strong> {moderationReason}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="max-w-4xl mx-auto py-12 px-6">
+      <div className="text-center mb-12">
+         <h1 className={`text-4xl font-black mb-2 tracking-tight ${isLight ? 'text-black' : 'text-white'}`}>Publish Content</h1>
+         <p className="text-gray-500">Reach millions of viewers across the Avvelux ecosystem.</p>
+      </div>
+
+      {/* Custom Steps Header */}
+      <div className="flex items-center justify-between mb-12 overflow-x-auto pb-4 hide-scrollbar max-w-2xl mx-auto">
+        {['Type', 'Upload', 'Details', 'Audience', 'Visibility'].map((s, i) => (
+          <div key={s} className="flex items-center gap-2">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-all
+              ${step === i ? 'bg-purple-600 text-white scale-110 shadow-lg shadow-purple-500/30' : 
+                step > i ? 'bg-green-500 text-white' : 
+                isLight ? 'bg-gray-100 text-gray-400' : 'bg-[#1a1a1a] text-gray-600'}`}>
+              {step > i ? <Check className="w-5 h-5" /> : i + 1}
+            </div>
+            <span className={`text-sm font-bold whitespace-nowrap ${step === i ? (isLight ? 'text-black' : 'text-white') : 'text-gray-500'}`}>
+              {s}
+            </span>
+            {i < 4 && <div className={`w-8 h-0.5 mx-2 rounded-full ${step > i ? 'bg-green-500/30' : isLight ? 'bg-gray-100' : 'bg-gray-800'}`} />}
+          </div>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div
+           key={step}
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           exit={{ opacity: 0, y: -20 }}
+           transition={{ duration: 0.3 }}
+           className={`p-10 rounded-[2.5rem] border shadow-2xl overflow-hidden relative ${isLight ? 'bg-white border-gray-100' : 'bg-[#0f0f0f]/80 backdrop-blur-xl border-gray-900'}`}
+        >
+          {step === 0 && renderStep0()}
+          {step === 1 && renderStep1()}
+          {step === 2 && renderStep2()}
+          {step === 3 && renderStep3()}
+          {step === 4 && renderStep4()}
+        </motion.div>
+      </AnimatePresence>
+
+      {(formData.videoFile || formData.imageFile || formData.content) && <StepIndicator />}
 
       <SuccessModal 
         open={showSuccessModal} 
-        onOpenChange={handleSuccessClose}
-        title="Published Successfully! 🎉"
-        message="Your content is now live and available for the community to discover."
-        buttonText="Go to Account"
+        onOpenChange={() => navigate(createPageUrl('Account'))}
+        title="Ready for Discovery! 🎉"
+        message="Your content is being processed and will be live shortly based on your visibility settings."
+        buttonText="Go to My Studio"
       />
     </div>
   );

@@ -122,9 +122,27 @@ Analyze this search query and return related keywords and content type:
 
   const matchScore = (item, fields) => {
     if (!searchQuery) return 1;
-    const kws = aiResults?.keywords || [searchQuery.toLowerCase()];
+    const cleanSearch = searchQuery.toLowerCase().trim();
+    // Handle both "tag" and "#tag"
+    const searchTerms = [
+      cleanSearch,
+      cleanSearch.startsWith('#') ? cleanSearch.substring(1) : cleanSearch
+    ];
+    
+    const kws = aiResults?.keywords || searchTerms;
+    
+    // Check tags first
+    if (item.tags && Array.isArray(item.tags)) {
+      const hasTag = item.tags.some(tag => 
+        kws.some(kw => tag.toLowerCase().includes(kw.toLowerCase()))
+      );
+      if (hasTag) return 2; // Higher weight for tags
+    }
+
     const text = fields.map(f => (item[f] || '').toLowerCase()).join(' ');
-    return kws.some(kw => text.includes(kw.toLowerCase())) || text.includes(searchQuery.toLowerCase()) ? 1 : 0;
+    const hasMatch = kws.some(kw => text.includes(kw.toLowerCase()));
+    
+    return hasMatch ? 1 : 0;
   };
 
   const filterByDuration = (items) => {
